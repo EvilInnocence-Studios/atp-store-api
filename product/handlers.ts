@@ -22,7 +22,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public update (...args:HandlerArgs<Partial<any>>):Promise<any> { 
-        return pipeTo(Product.update, getBodyParam("productId"), getBody)(args);
+        return pipeTo(Product.update, getParam("productId"), getBody)(args);
     }
 
     @CheckPermissions("product.view")
@@ -42,7 +42,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public addTag (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.tags.add, getParam("productId"), getBody)(args);
+        return pipeTo(Product.tags.add, getParam("productId"), getBodyParam("tagId"))(args);
     }
 
     @CheckPermissions("product.update")
@@ -57,7 +57,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public addRelated (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.related.add, getParam("productId"), getBody)(args);
+        return pipeTo(Product.related.add, getParam("productId"), getBodyParam("relatedId"))(args);
     }
 
     @CheckPermissions("product.update")

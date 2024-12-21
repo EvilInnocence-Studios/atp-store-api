@@ -12,12 +12,16 @@ export const ProductEndpoints = {
             tag: {
                 GET: get(ProductHandlers.getTags),
                 POST: post(ProductHandlers.addTag),
-                DELETE: del(ProductHandlers.removeTag),
+                ":tagId": {
+                    DELETE: del(ProductHandlers.removeTag),
+                }
             },
             related: {
                 GET: get(ProductHandlers.getRelated),
                 POST: post(ProductHandlers.addRelated),
-                DELETE: del(ProductHandlers.removeRelated),
+                ":relatedId": {
+                    DELETE: del(ProductHandlers.removeRelated),
+                }
             }
         }
     },
