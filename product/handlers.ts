@@ -1,11 +1,11 @@
-import {Product} from "./service";
 import { pipeTo } from "serverless-api-boilerplate";
-import { pipe } from "ts-functional";
+import { Query } from "../../core-shared/express/types";
 import { database } from '../../core/database';
 import { HandlerArgs } from '../../core/express/types';
-import { getBody, getBodyParam, getParam } from "../../core/express/util";
-import { Query } from "../../core-shared/express/types";
+import { getBody, getBodyParam, getFile, getParam, getParams } from "../../core/express/util";
+import { IProductMedia } from "../../store-shared/product/types";
 import { CheckPermissions } from "../../uac/permission/util";
+import { Product } from "./service";
 
 const db = database();
 
@@ -33,6 +33,26 @@ class ProductHandlerClass {
     @CheckPermissions("product.delete")
     public remove (...args:HandlerArgs<undefined>):Promise<null> {
         return pipeTo(Product.remove, getParam("productId"))(args);
+    }
+
+    @CheckPermissions("media.view")
+    public getMedia (...args:HandlerArgs<Query>):Promise<IProductMedia[]> {
+        return pipeTo(Product.media.search, getParams)(args);
+    }
+
+    @CheckPermissions("media.update")
+    public addMedia (...args:HandlerArgs<Partial<any>>):Promise<IProductMedia> {
+        return pipeTo(Product.media.upload, getParam("productId"), getFile)(args);
+    }
+
+    @CheckPermissions("media.update")
+    public updateMedia (...args:HandlerArgs<Partial<any>>):Promise<any> {
+        return pipeTo(Product.media.update, getParam("productId"), getParam("mediaId"), getBody)(args);
+    }
+
+    @CheckPermissions("media.delete")
+    public removeMedia (...args:HandlerArgs<undefined>):Promise<null> {
+        return pipeTo(Product.media.remove, getParam("productId"), getParam("mediaId"))(args);
     }
 
     @CheckPermissions("product.view")

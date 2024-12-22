@@ -1,4 +1,4 @@
-import { del, get, patch, post } from "../../core/express/wrappers";
+import { del, get, patch, post, upload } from "../../core/express/wrappers";
 import { ProductHandlers } from "./handlers";
 
 export const ProductEndpoints = {
@@ -9,6 +9,14 @@ export const ProductEndpoints = {
             GET: get(ProductHandlers.get),
             PATCH: patch(ProductHandlers.update),
             DELETE: del(ProductHandlers.remove),
+            media: {
+                GET: get(ProductHandlers.getMedia),
+                POST: upload(ProductHandlers.addMedia),
+                ":mediaId": {
+                    PATCH: patch(ProductHandlers.updateMedia),
+                    DELETE: del(ProductHandlers.removeMedia),
+                }
+            },
             tag: {
                 GET: get(ProductHandlers.getTags),
                 POST: post(ProductHandlers.addTag),

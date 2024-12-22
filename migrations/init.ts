@@ -1,7 +1,7 @@
 import { database } from "../../core/database";
 import { IMigration } from "../../core/database.d";
 import products from "../../../_data/products.json";
-import { IProduct, NewProduct } from "../../store-shared/product/types";
+import { IProduct, IProductMedia, NewProduct } from "../../store-shared/product/types";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 import { at, first, flatten, pipe, prop, split, switchOn, trim, unique } from "ts-functional";
 import { Index } from "ts-functional/dist/types";
@@ -39,7 +39,6 @@ type Product = {
     image: string;
     small_image: string;
     thumbnail: string;
-    images: string[];
     custom_design: string | null;
     page_layout: string | null;
     options_container: string;
@@ -72,6 +71,19 @@ type Product = {
     msrp: string | null;
     is_salable: string;
     stock_item: Record<string, unknown>;
+    images: Array<{
+        value_id: string;
+        file: string;
+        label: string;
+        position: string;
+        disabled: string;
+        label_default: string;
+        position_default: string;
+        disabled_default: string;
+        url: string;
+        id: string;
+        path: string;
+    }>;
     downloadable_links: {
         link_id: string;
         title: string | null;
@@ -309,6 +321,7 @@ export const init:IMigration = {
     down: () => db.schema
         .dropTableIfExists("productTags")
         .dropTableIfExists("relatedProducts")
+        .dropTableIfExists("productMedia")
         .dropTableIfExists("products"),
     up: () => db.schema
         .createTable("products", t => {
@@ -328,8 +341,16 @@ export const init:IMigration = {
             t.text("metaTitle");
             t.text("metaDescription");
             t.text("metaKeywords");
-            t.text("thumbnail");
-            t.string("thumbnailCaption", 255);
+            t.integer("thumbnailId").unsigned();
+            t.integer("mainImageId").unsigned();
+        })
+        .createTable("productMedia", t => {
+            t.increments().unsigned();
+            t.integer("productId").unsigned().notNullable();
+            t.string("url", 255).notNullable();
+            t.text("caption");
+            t.integer("order");
+            t.foreign("productId").references("products.id");
         })
         .createTable("productTags", t => {
             t.integer("productId").unsigned().notNullable();
@@ -381,8 +402,8 @@ export const init:IMigration = {
             metaTitle: p.meta_title,
             metaDescription: p.meta_description,
             metaKeywords: p.meta_keyword,
-            thumbnail: p.thumbnail,
-            thumbnailCaption: p.thumbnail_label,
+            thumbnailId: null,
+            mainImageId: null,
         })), "*")
         .then(async (insertedProducts:IProduct[]) => {
             // Get a list of all product ids
@@ -391,10 +412,54 @@ export const init:IMigration = {
             // Load all tags
             const allTags = await db("tags").select("*").then(a => a);
 
-            // Insert the tags and related products
-            return Promise.all((products as Product[]).map(product => {
+            // Insert the tags, media, and related products
+            return Promise.all((products as Product[]).map(async product => {
                 // Get the inserted product info
                 const insertedProduct = insertedProducts.find(p => p.sku === product.sku);
+
+                // Insert the media for the product
+                if(!!insertedProduct && product.images.length > 0) {
+                    const insertedMedia:IProductMedia[] = await db("productMedia").insert(product.images.map(image => ({
+                        productId: insertedProduct.id,
+                        url: image.file,
+                        caption: image.label,
+                        order: parseInt(image.position),
+                    })), "*");
+
+                    // If the product thumbnail is not among the insertedmedia, we need to insert it manually
+                    if(!insertedMedia.find(i => i.url === product.thumbnail)) {
+                        const [thumbnail] = await db("productMedia").insert({
+                            productId: insertedProduct.id,
+                            url: product.thumbnail,
+                            caption: product.thumbnail_label,
+                            order: 0,
+                        }, "*");
+                        insertedMedia.push(thumbnail);
+                    }
+
+                    // If the product image is not among the insertedmedia, we need to insert it manually
+                    if(!insertedMedia.find(i => i.url === product.image)) {
+                        const [mainImage] = await db("productMedia").insert({
+                            productId: insertedProduct.id,
+                            url: product.image,
+                            caption: product.image_label,
+                            order: 0,
+                        }, "*");
+                        insertedMedia.push(mainImage);
+                    }
+
+                    // TODO: Copy all images from original location to S3 and update the URLs
+
+                    // Update the product with the thumbnail and main image
+                    const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail));
+                    const mainImage = first(insertedMedia.filter(i => i.url === product.image));
+                    if(!!thumbnail) {
+                        await db("products").where({ id: insertedProduct.id }).update({ thumbnailId: thumbnail.id });
+                    }
+                    if(!!mainImage) {
+                        await db("products").where({ id: insertedProduct.id }).update({ mainImageId: mainImage.id });
+                    }
+                }
 
                 // Calculate the tags for the product
                 const tags = getTags(product).filter(t => !t.includes("__")).map(pipe(split(":"), at(1)));
