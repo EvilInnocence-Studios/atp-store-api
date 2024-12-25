@@ -1,17 +1,29 @@
+import {
+    DeleteObjectCommand,
+    PutObjectCommand,
+    S3Client,
+} from "@aws-sdk/client-s3";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
-import { IProduct, IProductMedia } from "../../store-shared/product/types";
-import {
-    S3Client,
-    PutObjectCommand,
-    DeleteObjectCommand,
-  } from "@aws-sdk/client-s3";
+import { error500 } from "../../core/express/util";
+import { IProduct, IProductFull, IProductMedia } from "../../store-shared/product/types";
 // import { fromEnv } from "@aws-sdk/credential-provider-env";
 
 const db = database();
 
 export const Product = {
     ...basicCrudService<IProduct>("products"),
+    searchWithTags: ():Promise<IProductFull> => {
+        return db("products")
+            .select("products.*", db.raw("array_agg(tags.name) as tags"))
+            .leftJoin("productTags", "products.id", "productTags.productId")
+            .leftJoin("tags", "productTags.tagId", "tags.id")
+            .groupBy("products.id")
+            .then((rows) => rows.map((row) => ({
+                ...row,
+                tags: row.tags.filter((tag:string | null) => tag !== null),
+            }))) as Promise<IProductFull>;
+    },
     related: basicRelationService<IProduct>("relatedProducts", "productId", "products", "relatedProductId"),
     tags: basicRelationService<IProduct>("productTags", "productId", "tags", "tagId"),
     media: {
@@ -19,6 +31,7 @@ export const Product = {
         upload: async (productId: number, file: any/*Express.Multer.File*/):Promise<IProductMedia> => {
             console.log(file);
             const { name, data } = file;
+
             // Upload file to S3
             const client = new S3Client({ region: "us-east-1" });
             const bucket = "evilinnocence";
@@ -30,12 +43,11 @@ export const Product = {
                 ACL: "public-read",
             });
             const response = await client.send(command);
-            console.log(response);
 
             // Create record in database
+            // If the productId and url unique key already exists, just return the existing record instead
             const [newMedia] = await db("productMedia")
-                .insert({ productId, url: name, caption: name }, "*");
-
+                .insert({ productId, url: name, caption: name }, "*").onConflict(["productId", "url"]).ignore();
             return newMedia;
         },
         remove: async (productId: number, mediaId: number):Promise<null> => {
@@ -45,7 +57,11 @@ export const Product = {
             const key = `media/product/${productId}/${mediaId}`;
             const command = new DeleteObjectCommand({ Bucket: bucket, Key: key });
             const response = await client.send(command);
-            console.log(response);
+
+            // If the removal of the file failed, skip the db record removal
+            if (response.$metadata.httpStatusCode !== 204) {
+                throw error500("Failed to remove file from the media store");
+            }
 
             // Remove record from database
             await db("productMedia")

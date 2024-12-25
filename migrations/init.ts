@@ -1,10 +1,13 @@
-import { database } from "../../core/database";
-import { IMigration } from "../../core/database.d";
-import products from "../../../_data/products.json";
-import { IProduct, IProductMedia, NewProduct } from "../../store-shared/product/types";
+import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { readFileSync } from "fs";
 import { NodeHtmlMarkdown } from "node-html-markdown";
+import throttledQueue from 'throttled-queue';
 import { at, first, flatten, pipe, prop, split, switchOn, trim, unique } from "ts-functional";
 import { Index } from "ts-functional/dist/types";
+import products from "../../../_data/products.json";
+import { database } from "../../core/database";
+import { IMigration } from "../../core/database.d";
+import { IProduct, IProductMedia, NewProduct } from "../../store-shared/product/types";
 
 const db = database();
 
@@ -317,6 +320,8 @@ const getTags = (product:Product) => flatten(unique([
     ...(product.requires || ""          ).split(",").map(trim).filter((a:any) => !!a).map(translateRequires),
 ]));
 
+const throttle = throttledQueue(1, 10000);
+
 export const init:IMigration = {
     down: () => db.schema
         .dropTableIfExists("productTags")
@@ -351,8 +356,10 @@ export const init:IMigration = {
             t.text("caption");
             t.integer("order");
             t.foreign("productId").references("products.id");
+            t.unique(["productId", "url"]);
         })
         .createTable("productTags", t => {
+            t.increments().unsigned();
             t.integer("productId").unsigned().notNullable();
             t.integer("tagId").unsigned().notNullable();
             t.foreign("productId").references("products.id");
@@ -360,51 +367,55 @@ export const init:IMigration = {
             t.unique(["productId", "tagId"]);
         })
         .createTable("relatedProducts", t => {
+            t.increments().unsigned();
             t.integer("productId").unsigned().notNullable();
             t.integer("relatedProductId").unsigned().notNullable();
             t.foreign("productId").references("products.id");
             t.foreign("relatedProductId").references("products.id");
             t.unique(["productId", "relatedProductId"]);
-        }).then(() => db("products").insert((products as Product[]).map<NewProduct>(p => ({
-            id: parseInt(p.entity_id),
-            name: p.name,
-            sku: p.sku,
+        }).then(() => {
+            console.log("Importing product data");
+            return db("products").insert((products as Product[]).map<NewProduct>(p => ({
+                id: parseInt(p.entity_id),
+                name: p.name,
+                sku: p.sku,
 
-            // Some URLs are not unique.  Make sure they are by adding the SKU
-            url: ["licorice-for-a3",
-                "bike-shorts-for-v4",
-                "gradient-shirt-for-v4",
-                "lbd5-for-a3"
-            ].includes(p.url_key)
-                ? `${p.url_key}-${p.sku}`
-                : p.url_key,
+                // Some URLs are not unique.  Make sure they are by adding the SKU
+                url: ["licorice-for-a3",
+                    "bike-shorts-for-v4",
+                    "gradient-shirt-for-v4",
+                    "lbd5-for-a3"
+                ].includes(p.url_key)
+                    ? `${p.url_key}-${p.sku}`
+                    : p.url_key,
 
-            // Translate HTML descriptions into Markdown
-            description: NodeHtmlMarkdown.translate(p.description),
+                // Translate HTML descriptions into Markdown
+                description: NodeHtmlMarkdown.translate(p.description),
 
-            descriptionShort: NodeHtmlMarkdown.translate(p.short_description),
-            productType: p.type_id ==="downloadable" ? "digital" : "grouped",
-            subscriptionOnly: p.backstage_pass_only === "1",
-            releaseDate: p.news_from_date,
+                descriptionShort: NodeHtmlMarkdown.translate(p.short_description),
+                productType: p.type_id ==="downloadable" ? "digital" : "grouped",
+                subscriptionOnly: p.backstage_pass_only === "1",
+                releaseDate: p.news_from_date,
 
-            // Translate brokerage information from Magento
-            brokeredAt: switchOn(`${p.exclusive_at}`, {
-                '121': () => "Daz",
-                '144': () => "HiveWire",
-                '122': () => "Renderosity",
-                '123': () => "RuntimeDNA",
-                'default': () => null,
-            }) || null,
-            
-            brokerageProductId: p.brokerage_product_id || null,
-            price: parseFloat(p.price),
-            enabled: p.status === "1",
-            metaTitle: p.meta_title,
-            metaDescription: p.meta_description,
-            metaKeywords: p.meta_keyword,
-            thumbnailId: null,
-            mainImageId: null,
-        })), "*")
+                // Translate brokerage information from Magento
+                brokeredAt: switchOn(`${p.exclusive_at}`, {
+                    '121': () => "Daz",
+                    '144': () => "HiveWire",
+                    '122': () => "Renderosity",
+                    '123': () => "RuntimeDNA",
+                    'default': () => null,
+                }) || null,
+                
+                brokerageProductId: p.brokerage_product_id || null,
+                price: parseFloat(p.price),
+                enabled: p.status === "1",
+                metaTitle: p.meta_title,
+                metaDescription: p.meta_description,
+                metaKeywords: p.meta_keyword,
+                thumbnailId: null,
+                mainImageId: null,
+            })), "*");
+        })
         .then(async (insertedProducts:IProduct[]) => {
             // Get a list of all product ids
             const productIds = insertedProducts.map(prop<IProduct, "id">("id"));
@@ -413,7 +424,11 @@ export const init:IMigration = {
             const allTags = await db("tags").select("*").then(a => a);
 
             // Insert the tags, media, and related products
-            return Promise.all((products as Product[]).map(async product => {
+            let i = 1;
+            const count = (products as Product[]).length;
+            for(const product of (products as Product[])) {
+                console.log(`Processing product (${i++} of ${count}) ${product.sku}:${product.name}`);
+
                 // Get the inserted product info
                 const insertedProduct = insertedProducts.find(p => p.sku === product.sku);
 
@@ -427,7 +442,7 @@ export const init:IMigration = {
                     })), "*");
 
                     // If the product thumbnail is not among the insertedmedia, we need to insert it manually
-                    if(!insertedMedia.find(i => i.url === product.thumbnail)) {
+                    if(product.thumbnail !== "no_selection" && !insertedMedia.find(i => i.url === product.thumbnail)) {
                         const [thumbnail] = await db("productMedia").insert({
                             productId: insertedProduct.id,
                             url: product.thumbnail,
@@ -438,7 +453,7 @@ export const init:IMigration = {
                     }
 
                     // If the product image is not among the insertedmedia, we need to insert it manually
-                    if(!insertedMedia.find(i => i.url === product.image)) {
+                    if(product.image !== "no_selection" && !insertedMedia.find(i => i.url === product.image)) {
                         const [mainImage] = await db("productMedia").insert({
                             productId: insertedProduct.id,
                             url: product.image,
@@ -449,8 +464,63 @@ export const init:IMigration = {
                     }
 
                     // TODO: Copy all images from original location to S3 and update the URLs
+                    const copyImages = true;
+                    if(copyImages && i > 2619) {
+                        const originalFolder = "A:/evilinnocence.com/_data/images";
+                        const s3Bucket = "evilinnocence";
+                        const s3Path = "media/product";
+                        const s3Client = new S3Client({
+                            region: "us-east-1",
+                            // Make sure timeouts are long
+                            requestHandler: {
+                                requestTimeout: 1200000,
+                            }
+                        });
+
+                        await Promise.all(insertedMedia.map(async image => {
+                            // Get the S3 file key from the last part of the image URL
+                            const fileName = image.url.split("/").pop();
+                            const key = `${s3Path}/${insertedProduct.id}/${fileName}`;
+
+                            // Update the url for the image to be the fileName instead
+                            await db("productMedia").where({ id: image.id }).update({ url: fileName });
+
+                            // See if the file already exists in S3
+                            const existsCommand = new HeadObjectCommand({ Bucket: s3Bucket, Key: key });
+                            try {
+                                await s3Client.send(existsCommand);
+                                console.log(`  [EXISTS] ${key}  Skipping...`);
+                                return;
+                            } catch(e) {
+                                // If the file does not exist, continue
+
+                                // Fetch the original image
+                                const originalPath = `${originalFolder}${image.url}`;
+                                const originalFile = readFileSync(originalPath, { encoding: "binary" });
+                                console.log(`  [LOADED] ${originalPath}`);
+
+                                if(!originalFile) {
+                                    console.log(`  [NOT FOUND] ${originalPath}`);
+                                    return;
+                                }
+
+                                // Upload the image to S3
+                                const command = new PutObjectCommand({
+                                    Bucket: s3Bucket,
+                                    Key: key,
+                                    Body: originalFile,
+                                    ACL: "public-read",
+                                    
+                                });
+                                await s3Client.send(command).then(() => {
+                                    console.log(`  [COPIED] ${key}`);
+                                });
+                            }
+                        }));
+                    }
 
                     // Update the product with the thumbnail and main image
+                    console.log(`  Updating thumbnail and main image`);
                     const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail));
                     const mainImage = first(insertedMedia.filter(i => i.url === product.image));
                     if(!!thumbnail) {
@@ -462,6 +532,7 @@ export const init:IMigration = {
                 }
 
                 // Calculate the tags for the product
+                console.log(`  Updating tags`);
                 const tags = getTags(product).filter(t => !t.includes("__")).map(pipe(split(":"), at(1)));
                 const tagIds = unique(tags.map(tag => {
                     const existingTag = allTags.find(t => t.name === tag);
@@ -479,8 +550,10 @@ export const init:IMigration = {
                         tagId
                     })))
                     : Promise.resolve();
+                await tagsPromise;
 
                 // Get the related products
+                console.log(`  Updating related products`);
                 const relatedProducts = product.related_products.filter(r => productIds.includes(parseInt(r.linked_product_id)));
 
                 // Insert the related products
@@ -490,10 +563,11 @@ export const init:IMigration = {
                         relatedProductId: parseInt(r.linked_product_id),
                     })))
                     : Promise.resolve();
+                await relatedPromise;
+
+                // TODO: Insert downloadable files
 
                 // Wait until the inserts are complete
-                return Promise.all([tagsPromise, relatedPromise]);
-            }))
+            }
         })
-    )
 }
