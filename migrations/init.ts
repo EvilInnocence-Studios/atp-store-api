@@ -436,36 +436,36 @@ export const init:IMigration = {
                 if(!!insertedProduct && product.images.length > 0) {
                     const insertedMedia:IProductMedia[] = await db("productMedia").insert(product.images.map(image => ({
                         productId: insertedProduct.id,
-                        url: image.file,
+                        url: image.file.split("/").pop(),
                         caption: image.label,
                         order: parseInt(image.position),
-                    })), "*");
+                    })), "*").onConflict().ignore();
 
                     // If the product thumbnail is not among the insertedmedia, we need to insert it manually
                     if(product.thumbnail !== "no_selection" && !insertedMedia.find(i => i.url === product.thumbnail)) {
                         const [thumbnail] = await db("productMedia").insert({
                             productId: insertedProduct.id,
-                            url: product.thumbnail,
+                            url: product.thumbnail.split("/").pop(),
                             caption: product.thumbnail_label,
                             order: 0,
-                        }, "*");
-                        insertedMedia.push(thumbnail);
+                        }, "*").onConflict().ignore();
+                        if(thumbnail) {insertedMedia.push(thumbnail);}
                     }
 
                     // If the product image is not among the insertedmedia, we need to insert it manually
                     if(product.image !== "no_selection" && !insertedMedia.find(i => i.url === product.image)) {
                         const [mainImage] = await db("productMedia").insert({
                             productId: insertedProduct.id,
-                            url: product.image,
+                            url: product.image.split("/").pop(),
                             caption: product.image_label,
                             order: 0,
-                        }, "*");
-                        insertedMedia.push(mainImage);
+                        }, "*").onConflict().ignore();
+                        if(mainImage) {insertedMedia.push(mainImage);}
                     }
 
                     // TODO: Copy all images from original location to S3 and update the URLs
-                    const copyImages = true;
-                    if(copyImages && i > 2619) {
+                    const copyImages = false;
+                    if(copyImages) {
                         const originalFolder = "A:/evilinnocence.com/_data/images";
                         const s3Bucket = "evilinnocence";
                         const s3Path = "media/product";
@@ -479,7 +479,7 @@ export const init:IMigration = {
 
                         await Promise.all(insertedMedia.map(async image => {
                             // Get the S3 file key from the last part of the image URL
-                            const fileName = image.url.split("/").pop();
+                            const fileName = image.url;
                             const key = `${s3Path}/${insertedProduct.id}/${fileName}`;
 
                             // Update the url for the image to be the fileName instead
@@ -490,13 +490,14 @@ export const init:IMigration = {
                             try {
                                 await s3Client.send(existsCommand);
                                 console.log(`  [EXISTS] ${key}  Skipping...`);
+                                throw "Skipping exists check";
                                 return;
                             } catch(e) {
                                 // If the file does not exist, continue
 
                                 // Fetch the original image
                                 const originalPath = `${originalFolder}${image.url}`;
-                                const originalFile = readFileSync(originalPath, { encoding: "binary" });
+                                const originalFile = readFileSync(originalPath);
                                 console.log(`  [LOADED] ${originalPath}`);
 
                                 if(!originalFile) {
@@ -521,8 +522,8 @@ export const init:IMigration = {
 
                     // Update the product with the thumbnail and main image
                     console.log(`  Updating thumbnail and main image`);
-                    const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail));
-                    const mainImage = first(insertedMedia.filter(i => i.url === product.image));
+                    const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail.split("/").pop()));
+                    const mainImage = first(insertedMedia.filter(i => i.url === product.image.split("/").pop()));
                     if(!!thumbnail) {
                         await db("products").where({ id: insertedProduct.id }).update({ thumbnailId: thumbnail.id });
                     }

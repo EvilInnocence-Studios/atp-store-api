@@ -3,7 +3,7 @@ import { Query } from "../../core-shared/express/types";
 import { database } from '../../core/database';
 import { HandlerArgs } from '../../core/express/types';
 import { getBody, getBodyParam, getFile, getParam, getParams } from "../../core/express/util";
-import { IProductMedia } from "../../store-shared/product/types";
+import { IProductFull, IProductMedia } from "../../store-shared/product/types";
 import { CheckPermissions } from "../../uac/permission/util";
 import { Product } from "./service";
 
@@ -16,8 +16,8 @@ class ProductHandlerClass {
     }
 
     @CheckPermissions("product.view")
-    public search (...args:HandlerArgs<Query>):Promise<any[]> {
-        return Product.search(getBody(args));
+    public search (...args:HandlerArgs<Query>):Promise<IProductFull[]> {
+        return Product.searchFull(getBody(args));
     }
 
     @CheckPermissions("product.update")

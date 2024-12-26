@@ -3,26 +3,32 @@ import {
     PutObjectCommand,
     S3Client,
 } from "@aws-sdk/client-s3";
+import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { error500 } from "../../core/express/util";
 import { IProduct, IProductFull, IProductMedia } from "../../store-shared/product/types";
-// import { fromEnv } from "@aws-sdk/credential-provider-env";
 
 const db = database();
 
 export const Product = {
     ...basicCrudService<IProduct>("products"),
-    searchWithTags: ():Promise<IProductFull> => {
-        return db("products")
-            .select("products.*", db.raw("array_agg(tags.name) as tags"))
+    searchFull: ({offset, perPage, ...query}: Query = {} as Query):Promise<IProductFull[]> => {
+        const stmt = db("products")
+            .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
+            .leftJoin("productMedia", "products.thumbnailId", "productMedia.id")
             .leftJoin("productTags", "products.id", "productTags.productId")
             .leftJoin("tags", "productTags.tagId", "tags.id")
-            .groupBy("products.id")
-            .then((rows) => rows.map((row) => ({
+            .groupBy("products.id", "productMedia.url")
+            .where(query)
+            .offset(offset || 0)
+            .limit(perPage || 999999);
+            console.log(stmt.toString());
+
+        return stmt.then((rows) => rows.map((row) => ({
                 ...row,
                 tags: row.tags.filter((tag:string | null) => tag !== null),
-            }))) as Promise<IProductFull>;
+            }))) as Promise<IProductFull[]>;
     },
     related: basicRelationService<IProduct>("relatedProducts", "productId", "products", "relatedProductId"),
     tags: basicRelationService<IProduct>("productTags", "productId", "tags", "tagId"),
