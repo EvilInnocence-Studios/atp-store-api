@@ -464,7 +464,7 @@ export const init:IMigration = {
                     }
 
                     // TODO: Copy all images from original location to S3 and update the URLs
-                    const copyImages = false;
+                    const copyImages = true;
                     if(copyImages) {
                         const originalFolder = "A:/evilinnocence.com/_data/images";
                         const s3Bucket = "evilinnocence";
