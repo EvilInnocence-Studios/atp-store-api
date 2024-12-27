@@ -14,7 +14,7 @@ const db = database();
 export const Product = {
     ...basicCrudService<IProduct>("products"),
     searchFull: ({offset, perPage, ...query}: Query = {} as Query):Promise<IProductFull[]> => {
-        const stmt = db("products")
+        return db("products")
             .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
             .leftJoin("productMedia", "products.thumbnailId", "productMedia.id")
             .leftJoin("productTags", "products.id", "productTags.productId")
@@ -22,10 +22,8 @@ export const Product = {
             .groupBy("products.id", "productMedia.url")
             .where(query)
             .offset(offset || 0)
-            .limit(perPage || 999999);
-            console.log(stmt.toString());
-
-        return stmt.then((rows) => rows.map((row) => ({
+            .limit(perPage || 999999)
+            .then((rows) => rows.map((row) => ({
                 ...row,
                 tags: row.tags.filter((tag:string | null) => tag !== null),
             }))) as Promise<IProductFull[]>;
