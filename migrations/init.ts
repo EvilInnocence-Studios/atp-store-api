@@ -464,7 +464,7 @@ export const init:IMigration = {
                     }
 
                     // TODO: Copy all images from original location to S3 and update the URLs
-                    const copyImages = true;
+                    const copyImages = false;
                     if(copyImages) {
                         const originalFolder = "A:/evilinnocence.com/_data/images";
                         const s3Bucket = "evilinnocence";
@@ -490,7 +490,6 @@ export const init:IMigration = {
                             try {
                                 await s3Client.send(existsCommand);
                                 console.log(`  [EXISTS] ${key}  Skipping...`);
-                                throw "Skipping exists check";
                                 return;
                             } catch(e) {
                                 // If the file does not exist, continue
