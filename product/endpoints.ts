@@ -13,6 +13,7 @@ export const ProductEndpoints = {
                 GET: get(ProductHandlers.getMedia),
                 POST: upload(ProductHandlers.addMedia),
                 ":mediaId": {
+                    GET: get(ProductHandlers.getOneMedia),
                     PATCH: patch(ProductHandlers.updateMedia),
                     DELETE: del(ProductHandlers.removeMedia),
                 }

@@ -40,6 +40,11 @@ class ProductHandlerClass {
         return pipeTo(Product.media.search, getParams)(args);
     }
 
+    @CheckPermissions("media.view")
+    public getOneMedia (...args:HandlerArgs<Query>):Promise<IProductMedia> {
+        return pipeTo(Product.media.loadById, getParam("mediaId"))(args);
+    }
+
     @CheckPermissions("media.update")
     public addMedia (...args:HandlerArgs<Partial<any>>):Promise<IProductMedia> {
         return pipeTo(Product.media.upload, getParam("productId"), getFile)(args);
@@ -82,7 +87,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public removeRelated (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Product.related.remove, getParam("productId"), getParam("relatedProductId"))(args);
+        return pipeTo(Product.related.remove, getParam("productId"), getParam("relatedId"))(args);
     }
 }
 
