@@ -1,13 +1,15 @@
 import {
     DeleteObjectCommand,
+    GetObjectCommand,
     PutObjectCommand,
     S3Client,
 } from "@aws-sdk/client-s3";
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { error500 } from "../../core/express/util";
-import { IProduct, IProductFull, IProductMedia } from "../../store-shared/product/types";
+import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
 
 const db = database();
 
@@ -75,4 +77,63 @@ export const Product = {
             return null;
         },
     },
+    files: {
+        get: (productId: number):Promise<IProductMedia[]> => db("productFiles")
+            .select("*")
+            .where({ productId }),
+        add: (productId: number, folder:string, file: any/*Express.Multer.File*/):Promise<IProductMedia> => {
+            console.log(file);
+            
+            // Upload file to S3
+            const client = new S3Client({ region: "us-east-1" });
+            const bucket = "evilinnocence";
+            const key = `/product/${folder}/${file.originalname}`;
+            const command = new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: file.buffer,
+            });
+            client.send(command);
+
+            // Create record in database
+            return db("productFiles")
+                .insert({ productId, fileName: file.originalname, folder }, "*")
+                .then((rows) => rows[0]);
+        },
+        remove: async (productId: number, fileId: number):Promise<null> => {
+            // Get the file details
+            const file:IProductFile = await db("productFiles")
+                .where({ id: fileId })
+                .first();
+            
+            // Remove file from S3
+            const client = new S3Client({ region: "us-east-1" });
+            const bucket = "evilinnocence";
+            const key = `/products/${file.folder}/${file.fileName}`;
+            const command = new DeleteObjectCommand({ Bucket: bucket, Key: key });
+            client.send(command);
+
+            // Remove record from database
+            return db("productFiles")
+                .where({ id: fileId })
+                .delete()
+                .then(() => null);
+        },
+        download: async (productId: number, fileId: number):Promise<string> => {
+            // Get the file details
+            const file:IProductFile = await db("productFiles")
+                .where({ id: fileId })
+                .first();
+            
+            // Generate a presigned URL
+            const client = new S3Client({ region: "us-east-1" });
+            const bucket = "evilinnocence";
+            const key = `products/${file.folder}/${file.fileName}`;
+            const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+            const url = await getSignedUrl(client, command, {expiresIn: 3600});
+
+            // Forward to the presigned URL
+            return url;
+        }
+    }
 }

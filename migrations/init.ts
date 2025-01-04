@@ -87,12 +87,18 @@ type Product = {
         id: string;
         path: string;
     }>;
-    downloadable_links: {
+    downloadable_links?: {
         link_id: string;
-        title: string | null;
-        price: string | null;
-        file: string | null;
-        type: string;
+        product_id: string;
+        sort_order: string;
+        number_of_downloads: string;
+        is_shareable: string;
+        link_url: string;
+        link_file: string;
+        link_type: string;
+        sample_url: string;
+        sample_file: string;
+        sample_type: string;        
     }[];
     categories: {
         id: string;
@@ -326,6 +332,7 @@ export const init:IMigration = {
     down: () => db.schema
         .dropTableIfExists("productTags")
         .dropTableIfExists("relatedProducts")
+        .dropTableIfExists("productFiles")
         .dropTableIfExists("productMedia")
         .dropTableIfExists("products"),
     up: () => db.schema
@@ -357,6 +364,13 @@ export const init:IMigration = {
             t.integer("order");
             t.foreign("productId").references("products.id");
             t.unique(["productId", "url"]);
+        })
+        .createTable("productFiles", t => {
+            t.increments().unsigned();
+            t.integer("productId").unsigned().notNullable();
+            t.string("fileName", 255).notNullable();
+            t.string("folder", 255).notNullable();
+            t.foreign("productId").references("products.id");
         })
         .createTable("productTags", t => {
             t.increments().unsigned();
@@ -550,7 +564,6 @@ export const init:IMigration = {
                         tagId
                     })))
                     : Promise.resolve();
-                await tagsPromise;
 
                 // Get the related products
                 console.log(`  Updating related products`);
@@ -563,11 +576,20 @@ export const init:IMigration = {
                         relatedProductId: parseInt(r.linked_product_id),
                     })))
                     : Promise.resolve();
-                await relatedPromise;
 
-                // TODO: Insert downloadable files
+                // Insert downloadable files
+                console.log(`  Inserting downloadable files`);
+                const downloadableFiles = !!product.downloadable_links ? product.downloadable_links.filter(l => !!l.link_url) : [];
+                const filesPromise = !!insertedProduct && downloadableFiles.length > 0
+                    ? db("productFiles").insert(downloadableFiles.map(file => ({
+                        productId: insertedProduct.id,
+                        fileName: file.link_url.split("/")[1],
+                        folder: file.link_url.split("/")[0],
+                    })))
+                    : Promise.resolve();
 
                 // Wait until the inserts are complete
+                await Promise.all([tagsPromise, relatedPromise, filesPromise]);
             }
         })
 }

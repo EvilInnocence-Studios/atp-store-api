@@ -89,6 +89,26 @@ class ProductHandlerClass {
     public removeRelated (...args:HandlerArgs<undefined>):Promise<any> {
         return pipeTo(Product.related.remove, getParam("productId"), getParam("relatedId"))(args);
     }
+
+    @CheckPermissions("product.view")
+    public getFiles (...args:HandlerArgs<Query>):Promise<any[]> {
+        return pipeTo(Product.files.get, getParam("productId"))(args);
+    }
+
+    @CheckPermissions("product.update")
+    public addFile (...args:HandlerArgs<Partial<any>>):Promise<any> {
+        return pipeTo(Product.files.add, getParam("productId"), getBodyParam("folder"), getFile)(args);
+    }
+
+    @CheckPermissions("product.delete")
+    public removeFile (...args:HandlerArgs<undefined>):Promise<any> {
+        return pipeTo(Product.files.remove, getParam("productId"), getParam("fileId"))(args);
+    }
+
+    @CheckPermissions("product.view")
+    public download (...args:HandlerArgs<Query>):Promise<any> {
+        return pipeTo(Product.files.download, getParam("productId"), getParam("fileId"))(args);
+    }
 }
 
 export const ProductHandlers = new ProductHandlerClass();

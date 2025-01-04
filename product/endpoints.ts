@@ -31,6 +31,16 @@ export const ProductEndpoints = {
                 ":relatedId": {
                     DELETE: del(ProductHandlers.removeRelated),
                 }
+            },
+            file: {
+                GET: get(ProductHandlers.getFiles),
+                POST: upload(ProductHandlers.addFile),
+                ":fileId": {
+                    DELETE: del(ProductHandlers.removeFile),
+                    download: {
+                        GET: get(ProductHandlers.download),
+                    },
+                }
             }
         }
     },
