@@ -692,7 +692,7 @@ export const init:IMigration = {
             const insertedCustomer = insertedCustomers[0];
             console.log("  Customer data inserted");
             if(!!insertedCustomer) {
-                await db("userRole").insert({
+                await db("userRoles").insert({
                     userId: insertedCustomer.id,
                     roleId: 3,
                 })
