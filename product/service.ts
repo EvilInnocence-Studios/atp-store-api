@@ -8,6 +8,7 @@ import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { downloadMedia, removeMedia, uploadMedia } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
+import { mapKeys } from "../../core/express/util";
 
 const db = database();
 
@@ -20,7 +21,7 @@ export const Product = {
             .leftJoin("productTags", "products.id", "productTags.productId")
             .leftJoin("tags", "productTags.tagId", "tags.id")
             .groupBy("products.id", "productMedia.url")
-            .where(query)
+            .where(mapKeys(k => `products.${k}`)(query))
             .offset(offset || 0)
             .limit(perPage || 999999)
             .then((rows) => rows.map((row) => ({
