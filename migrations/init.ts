@@ -395,6 +395,7 @@ export const init:IMigration = {
         .dropTableIfExists("orders")
         .dropTableIfExists("wishlists")
         .dropTableIfExists("productTags")
+        .dropTableIfExists("subProducts")
         .dropTableIfExists("relatedProducts")
         .dropTableIfExists("productFiles")
         .dropTableIfExists("productMedia")
@@ -459,6 +460,14 @@ export const init:IMigration = {
             t.foreign("productId").references("products.id");
             t.foreign("relatedProductId").references("products.id");
             t.unique(["productId", "relatedProductId"]);
+        })
+        .createTable("subProducts", t => {
+            t.increments().unsigned();
+            t.integer("productId").unsigned().notNullable();
+            t.integer("subProductId").unsigned().notNullable();
+            t.foreign("productId").references("products.id");
+            t.foreign("subProductId").references("products.id");
+            t.unique(["productId", "subProductId"]);
         })
         .createTable("orders", t => {
             t.increments().unsigned();
@@ -683,6 +692,48 @@ export const init:IMigration = {
 
             // Wait until the inserts are complete
             await Promise.all([tagsPromise, relatedPromise, filesPromise]);
+        }
+
+        // Manually add subproducts for all bundles
+        // Search by name and sku
+        const bundles:Array<{
+            productName: string,
+            subProductMatches:Array<{
+                name?: string;
+                sku?: string;
+            }>
+        }> = [
+            { productName: "All Licenses", subProductMatches: [{name: "License", sku: "SKU-XD4"}]},
+            { productName: "3D Universe Girls:  CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4Sara"},{sku: "SKU-XD4Sadie"},{sku: "SKU-XD4Skye"},{sku: "SKU-XD4Staci"}
+            ]},
+            { productName: "Koshini/Ichiro:  CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4Koshini"},{sku: "SKU-XD4Ichiro"}, {sku: "SKU-XD4Ichiro2"}, {sku: "SKU-XD4Koshini2"}
+            ]},
+            { productName: "Nursoda Females: CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4Kena"}, {sku: "SKU-XD4KaliKelm"}, {sku: "SKU-XD4Bonga"}, {sku: "SKU-XD4EEPO"}
+            ]},
+            { productName: "Daz Gen 3 Females: CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4V3"}, {sku: "SKU-XD4SP3"}, {sku: "SKU-XD4Laura3"}, {sku: "SKU-XD4Aiko3"},
+            ]},
+            { productName: "Daz Gen 3 Males: CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4Luke3"}, {sku: "SKU-XD4Hiro3"}, {sku: "SKU-XD4Mike3"}, {sku: "SKU-XD4DAVID"}, 
+            ]},
+            { productName: "3D Universe Guys:  CrossDresser Bundle", subProductMatches: [
+                {sku: "SKU-XD4Sam"}, {sku: "SKU-XD4Ug"}, {sku: "SKU-XD4Gramps"}, {sku: "SKU-XD4Dennis"}, 
+            ]},
+        ];
+        for(const bundle of bundles) {
+            const product = first(insertedProducts.filter(p => p.name.includes("ALL Licenses")));
+            const subProducts = flatten(product ? bundle.subProductMatches.map(
+                m => insertedProducts.filter(p => (!m.name || p.name.includes(m.name)) && (!m.sku || p.sku.includes(m.sku)))
+            ) : []);
+            if(!!product && subProducts.length > 0) {
+                await db("subProducts").insert(subProducts.map(p => ({
+                    productId: product.id,
+                    subProductId: p.id,
+                }))).onConflict().ignore();
+            }
         }
 
         // Show any duplicate values for customer emails

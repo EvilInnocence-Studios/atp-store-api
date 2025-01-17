@@ -31,6 +31,7 @@ export const Product = {
     },
     related: basicRelationService<IProduct>("relatedProducts", "productId", "products", "relatedProductId"),
     tags: basicRelationService<IProduct>("productTags", "productId", "tags", "tagId"),
+    subProducts: basicRelationService<IProduct>("subProducts", "productId", "products", "subProductId"),
     media: {
         ...basicCrudService<IProductMedia>("productMedia", "url"),
         upload: async (productId: number, file: Express.Multer.File):Promise<IProductMedia> => {

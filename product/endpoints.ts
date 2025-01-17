@@ -41,6 +41,13 @@ export const ProductEndpoints = {
                         GET: get(ProductHandlers.download),
                     },
                 }
+            },
+            subProduct: {
+                GET: get(ProductHandlers.getSubProducts),
+                POST: post(ProductHandlers.addSubProduct),
+                ":subProductId": {
+                    DELETE: del(ProductHandlers.removeSubProduct),
+                }
             }
         }
     },

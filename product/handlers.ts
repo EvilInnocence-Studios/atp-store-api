@@ -109,6 +109,21 @@ class ProductHandlerClass {
     public download (...args:HandlerArgs<Query>):Promise<any> {
         return pipeTo(Product.files.download, getParam("productId"), getParam("fileId"))(args);
     }
+
+    @CheckPermissions("product.view")
+    public getSubProducts (...args:HandlerArgs<Query>):Promise<any[]> {
+        return pipeTo(Product.subProducts.get, getParam("productId"))(args);
+    }
+
+    @CheckPermissions("product.update")
+    public addSubProduct (...args:HandlerArgs<Partial<any>>):Promise<any> {
+        return pipeTo(Product.subProducts.add, getParam("productId"), getBodyParam("subProductId"))(args);
+    }
+
+    @CheckPermissions("product.delete")
+    public removeSubProduct (...args:HandlerArgs<undefined>):Promise<any> {
+        return pipeTo(Product.subProducts.remove, getParam("productId"), getParam("subProductId"))(args);
+    }
 }
 
 export const ProductHandlers = new ProductHandlerClass();
