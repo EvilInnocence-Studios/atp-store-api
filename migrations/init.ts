@@ -144,7 +144,22 @@ type Customer = {
         subtotal: string;
         created_at: string;
         items: string[];
-    }>
+    }>;
+    wishlist: Array<{
+        wishlist_item_id: string;
+        wishlist_id: string;
+        product_id: string;
+        store_id: string;
+        added_at: string;
+        description: string | null;
+        qty: string;
+        product: {
+
+        };
+        product_name: string;
+        name: string;
+        price: string;
+    }>,
 }
 
 const figureMap:Index<string> = {
@@ -378,6 +393,7 @@ export const init:IMigration = {
     down: () => db.schema
         .dropTableIfExists("orderLineItems")
         .dropTableIfExists("orders")
+        .dropTableIfExists("wishlists")
         .dropTableIfExists("productTags")
         .dropTableIfExists("relatedProducts")
         .dropTableIfExists("productFiles")
@@ -427,6 +443,14 @@ export const init:IMigration = {
             t.foreign("productId").references("products.id");
             t.foreign("tagId").references("tags.id");
             t.unique(["productId", "tagId"]);
+        })
+        .createTable("wishlists", t => {
+            t.increments().unsigned();
+            t.integer("productId").unsigned().notNullable();
+            t.integer("userId").unsigned().notNullable();
+            t.foreign("productId").references("products.id")
+            t.foreign("userId").references("users.id");
+            t.unique(["productId", "userId"]);
         })
         .createTable("relatedProducts", t => {
             t.increments().unsigned();
@@ -727,6 +751,13 @@ export const init:IMigration = {
                     }
                 }
                 console.log("  Customer order info inserted");
+            }
+            if(!!insertedCustomer && customer.wishlist.length > 0) {
+                await db("wishlists").insert(customer.wishlist.map(w => ({
+                    userId: insertedCustomer.id,
+                    productId: w.product_id,
+                }))).onConflict().ignore();
+                console.log("  Customer wishlist info inserted");
             }
         }
     },
