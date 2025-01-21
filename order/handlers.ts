@@ -22,6 +22,16 @@ class OrderHandlerClass {
         return pipeTo(Order.create, getParam("userId"), getBody)(args);
     }
 
+    @CheckPermissions("order.purchase")
+    public start (...args:HandlerArgs<any>):Promise<any> {
+        return pipeTo(Order.start, getParam("userId"), getBody)(args);
+    }
+
+    @CheckPermissions("order.purchase")
+    public finalize (...args:HandlerArgs<undefined>):Promise<any> {
+        return pipeTo(Order.finalize, getParam("orderId"))(args);
+    }
+
     @CheckPermissions("order.view")
     public search (...args:HandlerArgs<Query>):Promise<IOrder[]> {
         console.log(getParams(args));
