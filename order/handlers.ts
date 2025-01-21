@@ -1,9 +1,9 @@
-import { pipeTo } from "serverless-api-boilerplate";
-import { CheckPermissions } from "../../uac/permission/util";
-import { getBody, getParam, getParams } from "../../core/express/util";
-import { IOrder, IOrderFull, IOrderItem, IProduct } from "../../store-shared/product/types";
-import { HandlerArgs } from "../../core/express/types";
 import { Query } from "pg";
+import { pipeTo } from "serverless-api-boilerplate";
+import { HandlerArgs } from "../../core/express/types";
+import { getBody, getBodyParam, getParam, getParams } from "../../core/express/util";
+import { IOrder, IOrderFull, IProduct } from "../../store-shared/product/types";
+import { CheckPermissions } from "../../uac/permission/util";
 import { Order } from "./service";
 
 class OrderHandlerClass {
@@ -28,13 +28,12 @@ class OrderHandlerClass {
     }
 
     @CheckPermissions("order.purchase")
-    public finalize (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Order.finalize, getParam("orderId"))(args);
+    public finalize (...args:HandlerArgs<Query>):Promise<any> {
+        return pipeTo(Order.finalize, getBodyParam("transactionId"))(args);
     }
 
     @CheckPermissions("order.view")
     public search (...args:HandlerArgs<Query>):Promise<IOrder[]> {
-        console.log(getParams(args));
         return pipeTo(Order.search, getParams)(args);
     }
 

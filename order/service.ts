@@ -1,7 +1,7 @@
 import { database } from "../../core/database"
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { calculateTotal } from "../../store-shared/cart/util";
-import { IOrder, IOrderCreateRequest, IOrderFull, IProduct, IProductFile, SafeOrder } from "../../store-shared/product/types";
+import { IOrder, IOrderCreateRequest, IOrderFull, IProduct, IProductFile } from "../../store-shared/product/types";
 import {
     ApiError,
     CheckoutPaymentIntent,
@@ -14,6 +14,7 @@ import {
 import { Product } from "../product/service";
 import { error500 } from "../../core/express/util";
 import { omit } from "ts-functional";
+import { NewObj } from "../../core-shared/express/types";
 
 const db = database();
 
@@ -120,9 +121,8 @@ export const Order = {
         const files = await Order.files.getByOrder(id);
         return { ...order, items, files };
     },
-    makeSafe: (order:IOrder):SafeOrder => omit<IOrder, "transactionId">("transactionId")(order),
     items: basicRelationService<IProduct>("orderLineItems", "orderId", "products", "productId"),
-    start: async (userId: number, order: IOrderCreateRequest):Promise<SafeOrder> => {
+    start: async (userId: number, order: IOrderCreateRequest):Promise<IOrder> => {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
         const total = await calculateTotal(order);
 
@@ -142,20 +142,20 @@ export const Order = {
                 await Order.items.add(newOrder.id, product.id).onConflict().ignore();
             }));
 
-            return Order.makeSafe(newOrder);
+            return newOrder;
         } else {
             throw error500("Failed to create order");
         }
     },
-    finalize: async (orderId: number):Promise<SafeOrder> => {
-        const order = await Order.loadById(orderId);
+    finalize: async (transactionId: number):Promise<IOrder> => {
+        const order = await Order.loadBy("transactionId")(transactionId);
         if(order.status === "complete") {
             return order;
         }
 
         if(order.transactionId) {
             const payPalResult = await captureOrder(order.transactionId);
-            return Order.update(orderId, {status: "complete"});
+            return Order.update(order.id, {status: "complete"});
 
             // TODO: Send order confirmation email
 
