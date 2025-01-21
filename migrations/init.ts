@@ -477,6 +477,8 @@ export const init:IMigration = {
             t.decimal("subtotal", 10, 2).notNullable();
             t.decimal("discount", 10, 2).notNullable();
             t.string("couponCode");
+            t.string("status").notNullable().defaultTo("pending");
+            t.string("transactionId");
             t.dateTime("createdAt").notNullable();
         })
         .createTable("orderLineItems", t => {
@@ -549,102 +551,105 @@ export const init:IMigration = {
             const insertedProduct = insertedProducts.find(p => p.sku === product.sku);
 
             // Insert the media for the product
+            let insertedMedia:IProductMedia[] = [];
             if(!!insertedProduct && product.images.length > 0) {
-                const insertedMedia:IProductMedia[] = await db("productMedia").insert(product.images.map(image => ({
+                insertedMedia = await db("productMedia").insert(product.images.map(image => ({
                     productId: insertedProduct.id,
                     url: image.file.split("/").pop(),
                     caption: image.label,
                     order: parseInt(image.position),
                 })), "*").onConflict().ignore();
+            }
 
-                // If the product thumbnail is not among the insertedmedia, we need to insert it manually
-                if(product.thumbnail !== "no_selection" && !insertedMedia.find(i => i.url === product.thumbnail)) {
-                    const [thumbnail] = await db("productMedia").insert({
-                        productId: insertedProduct.id,
-                        url: product.thumbnail.split("/").pop(),
-                        caption: product.thumbnail_label,
-                        order: 0,
-                    }, "*").onConflict().ignore();
-                    if(thumbnail) {insertedMedia.push(thumbnail);}
-                }
+            // If the product thumbnail is not among the insertedmedia, we need to insert it manually
+            if(product.thumbnail && product.thumbnail !== "no_selection" && !insertedMedia.find(i => i.url === product.thumbnail.split("/").pop())) {
+                const [thumbnail] = await db("productMedia").insert({
+                    productId: insertedProduct.id,
+                    url: product.thumbnail.split("/").pop(),
+                    caption: product.thumbnail_label,
+                    order: 0,
+                }, "*").onConflict().ignore();
+                if(thumbnail) {insertedMedia.push(thumbnail);}
+            }
 
-                // If the product image is not among the insertedmedia, we need to insert it manually
-                if(product.image !== "no_selection" && !insertedMedia.find(i => i.url === product.image)) {
-                    const [mainImage] = await db("productMedia").insert({
-                        productId: insertedProduct.id,
-                        url: product.image.split("/").pop(),
-                        caption: product.image_label,
-                        order: 0,
-                    }, "*").onConflict().ignore();
-                    if(mainImage) {insertedMedia.push(mainImage);}
-                }
+            // If the product image is not among the insertedmedia, we need to insert it manually
+            if(product.image && product.image !== "no_selection" && !insertedMedia.find(i => i.url === product.image.split("/").pop())) {
+                const [mainImage] = await db("productMedia").insert({
+                    productId: insertedProduct.id,
+                    url: product.image.split("/").pop(),
+                    caption: product.image_label,
+                    order: 0,
+                }, "*").onConflict().ignore();
+                if(mainImage) {insertedMedia.push(mainImage);}
+            }
 
-                // Copy all images from original location to S3 and update the URLs
-                const copyImages = false;
-                if(copyImages) {
-                    const originalFolder = "A:/evilinnocence.com/_data/images";
-                    const s3Bucket = "evilinnocence";
-                    const s3Path = "media/product";
-                    const s3Client = new S3Client({
-                        region: "us-east-1",
-                        // Make sure timeouts are long
-                        requestHandler: {
-                            requestTimeout: 1200000,
-                        }
-                    });
+            // Copy all images from original location to S3 and update the URLs
+            const copyImages = false;
+            if(copyImages && insertedMedia.length > 0) {
+                const originalFolder = "A:/evilinnocence.com/_data/images";
+                const s3Bucket = "evilinnocence";
+                const s3Path = "media/product";
+                const s3Client = new S3Client({
+                    region: "us-east-1",
+                    // Make sure timeouts are long
+                    requestHandler: {
+                        requestTimeout: 1200000,
+                    }
+                });
 
-                    await Promise.all(insertedMedia.map(async image => {
-                        // Get the S3 file key from the last part of the image URL
-                        const fileName = image.url;
-                        const key = `${s3Path}/${insertedProduct.id}/${fileName}`;
+                await Promise.all(insertedMedia.map(async image => {
+                    // Get the S3 file key from the last part of the image URL
+                    const fileName = image.url;
+                    const key = `${s3Path}/${insertedProduct.id}/${fileName}`;
 
-                        // Update the url for the image to be the fileName instead
-                        await db("productMedia").where({ id: image.id }).update({ url: fileName });
+                    // Update the url for the image to be the fileName instead
+                    await db("productMedia").where({ id: image.id }).update({ url: fileName });
 
-                        // See if the file already exists in S3
-                        const existsCommand = new HeadObjectCommand({ Bucket: s3Bucket, Key: key });
-                        try {
-                            await s3Client.send(existsCommand);
-                            console.log(`  [EXISTS] ${key}  Skipping...`);
+                    // See if the file already exists in S3
+                    const existsCommand = new HeadObjectCommand({ Bucket: s3Bucket, Key: key });
+                    try {
+                        await s3Client.send(existsCommand);
+                        console.log(`  [EXISTS] ${key}  Skipping...`);
+                        return;
+                    } catch(e) {
+                        // If the file does not exist, continue
+
+                        // Fetch the original image
+                        // Append the first two letter of the image URL to the originalPath
+                        // For example: afdiana.png => \a\f\afdiana.png
+                        const originalPath = `${originalFolder}\\${image.url[0]}\\${image.url[1]}\\${image.url}`;
+                        const originalFile = readFileSync(originalPath);
+                        console.log(`  [LOADED] ${originalPath}`);
+
+                        if(!originalFile) {
+                            console.log(`  [NOT FOUND] ${originalPath}`);
                             return;
-                        } catch(e) {
-                            // If the file does not exist, continue
-
-                            // Fetch the original image
-                            const originalPath = `${originalFolder}${image.url}`;
-                            const originalFile = readFileSync(originalPath);
-                            console.log(`  [LOADED] ${originalPath}`);
-
-                            if(!originalFile) {
-                                console.log(`  [NOT FOUND] ${originalPath}`);
-                                return;
-                            }
-
-                            // Upload the image to S3
-                            const command = new PutObjectCommand({
-                                Bucket: s3Bucket,
-                                Key: key,
-                                Body: originalFile,
-                                ACL: "public-read",
-                                
-                            });
-                            await s3Client.send(command).then(() => {
-                                console.log(`  [COPIED] ${key}`);
-                            });
                         }
-                    }));
-                }
 
-                // Update the product with the thumbnail and main image
-                console.log(`  Updating thumbnail and main image`);
-                const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail.split("/").pop()));
-                const mainImage = first(insertedMedia.filter(i => i.url === product.image.split("/").pop()));
-                if(!!thumbnail) {
-                    await db("products").where({ id: insertedProduct.id }).update({ thumbnailId: thumbnail.id });
-                }
-                if(!!mainImage) {
-                    await db("products").where({ id: insertedProduct.id }).update({ mainImageId: mainImage.id });
-                }
+                        // Upload the image to S3
+                        const command = new PutObjectCommand({
+                            Bucket: s3Bucket,
+                            Key: key,
+                            Body: originalFile,
+                            ACL: "public-read",
+                            
+                        });
+                        await s3Client.send(command).then(() => {
+                            console.log(`  [COPIED] ${key}`);
+                        });
+                    }
+                }));
+            }
+
+            // Update the product with the thumbnail and main image
+            console.log(`  Updating thumbnail and main image`);
+            const thumbnail = first(insertedMedia.filter(i => i.url === product.thumbnail.split("/").pop()));
+            const mainImage = first(insertedMedia.filter(i => i.url === product.image.split("/").pop()));
+            if(!!thumbnail) {
+                await db("products").where({ id: insertedProduct.id }).update({ thumbnailId: thumbnail.id });
+            }
+            if(!!mainImage) {
+                await db("products").where({ id: insertedProduct.id }).update({ mainImageId: mainImage.id });
             }
 
             // Calculate the tags for the product
@@ -781,6 +786,7 @@ export const init:IMigration = {
                         subtotal: parseFloat(order.subtotal),
                         discount: parseFloat(order.discount_amount),
                         couponCode: order.coupon_code,
+                        status: "complete",
                         createdAt: order.created_at,                            
                     }, "*");
                     const insertedOrder = insertedOrders[0];
