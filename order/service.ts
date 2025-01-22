@@ -15,6 +15,11 @@ import { Product } from "../product/service";
 import { error500 } from "../../core/express/util";
 import { omit } from "ts-functional";
 import { NewObj } from "../../core-shared/express/types";
+import { render } from "../../core/render";
+import { sendEmail } from "../../core/sendEmail";
+import {OrderConfirmation} from "../components/orderConfirmation";
+import { getAppConfig } from "../../../config";
+import { User } from "../../uac/user/service";
 
 const db = database();
 
@@ -147,38 +152,70 @@ export const Order = {
             throw error500("Failed to create order");
         }
     },
-    finalize: async (transactionId: number):Promise<IOrder> => {
+    finalize: async (transactionId: string):Promise<IOrder> => {
+        // Get the order.  Do nothing if it's already complete
         const order = await Order.loadBy("transactionId")(transactionId);
         if(order.status === "complete") {
             return order;
         }
 
-        if(order.transactionId) {
+        if(order.transactionId && order.transactionId === transactionId) {
+            // Finalize the order
             const payPalResult = await captureOrder(order.transactionId);
-            return Order.update(order.id, {status: "complete"});
+            const finalOrder = await Order.update(order.id, {status: "complete"});
 
-            // TODO: Send order confirmation email
+            // Send order confirmation email
+            const user = await User.loadById(order.userId);
+            const products = await Order.items.get(order.id);
+            const html = render(OrderConfirmation, {user, order, products});
+            await sendEmail(getAppConfig().emailTemplates.orderConfirmation.subject, html, [user.email]);
 
+            return finalOrder;
         } else {
             throw error500("Order has no transaction ID");
         }
     },
     files: {
-        getByOrder: (orderId: number):Promise<IProductFile[]> => {
-            return db
-                .select("productFiles.*")
-                .from("productFiles")
-                .join("orderLineItems", "productFiles.productId", "orderLineItems.productId")
-                .where("orderLineItems.orderId", orderId);
-        },
-        getByUser: (userId: number):Promise<IProductFile[]> => {
-            // Get all files linked from all products of all of the user's orders
-            return db
+        getByOrder: async (orderId: number):Promise<IProductFile[]> => {
+            const productFiles = await db
                 .select("productFiles.*")
                 .from("productFiles")
                 .join("orderLineItems", "productFiles.productId", "orderLineItems.productId")
                 .join("orders", "orderLineItems.orderId", "orders.id")
-                .where("orders.userId", userId);
+                .where("orderLineItems.orderId", orderId)
+                .where("orders.status", "complete");
+
+            const subProductFiles = await db
+                .select("productFiles.*")
+                .from("productFiles")
+                .join("subProducts", "productFiles.productId", "subProducts.subProductId")
+                .join("orderLineItems", "subProducts.productId", "orderLineItems.productId")
+                .join("orders", "orderLineItems.orderId", "orders.id")
+                .where("orderLineItems.orderId", orderId)
+                .where("orders.status", "complete");
+
+            return [...productFiles, ...subProductFiles];
+        },
+        getByUser: async (userId: number):Promise<IProductFile[]> => {
+            // Get all files linked from all products of all of the user's orders
+            const productFiles = await db
+                .select("productFiles.*")
+                .from("productFiles")
+                .join("orderLineItems", "productFiles.productId", "orderLineItems.productId")
+                .join("orders", "orderLineItems.orderId", "orders.id")
+                .where("orders.userId", userId)
+                .where("orders.status", "complete");
+
+            const subProductFiles = await db
+                .select("productFiles.*")
+                .from("productFiles")
+                .join("subProducts", "productFiles.productId", "subProducts.subProductId")
+                .join("orderLineItems", "subProducts.productId", "orderLineItems.productId")
+                .join("orders", "orderLineItems.orderId", "orders.id")
+                .where("orders.userId", userId)
+                .where("orders.status", "complete");
+
+            return [...productFiles, ...subProductFiles];
         }
     }
 }

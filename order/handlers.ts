@@ -5,6 +5,7 @@ import { getBody, getBodyParam, getParam, getParams } from "../../core/express/u
 import { IOrder, IOrderFull, IProduct } from "../../store-shared/product/types";
 import { CheckPermissions } from "../../uac/permission/util";
 import { Order } from "./service";
+import { pipe } from "ts-functional";
 
 class OrderHandlerClass {
     @CheckPermissions("order.view")
@@ -34,7 +35,7 @@ class OrderHandlerClass {
 
     @CheckPermissions("order.view")
     public search (...args:HandlerArgs<Query>):Promise<IOrder[]> {
-        return pipeTo(Order.search, getParams)(args);
+        return pipeTo(Order.search, pipe(getParams, q => ({...q, status: "complete"})))(args);
     }
 
     @CheckPermissions("order.update")
