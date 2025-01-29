@@ -1,5 +1,5 @@
+import { IOrderCreateRequest } from "../../store-shared/product/types";
 import { Product } from "../../store/product/service";
-import { IOrderCreateRequest } from "../product/types";
 
 export declare interface ICartTotals {
     subtotal: number;

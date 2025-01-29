@@ -3,12 +3,15 @@ import { readFileSync } from "fs";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 import { at, first, flatten, pipe, prop, split, switchOn, trim, unique } from "ts-functional";
 import { Index } from "ts-functional/dist/types";
-import products from "../../../_data/products.json";
-import customers from "../../../_data/customers.json";
 import { database } from "../../core/database";
 import { IMigration } from "../../core/database.d";
 import { IOrder, IProduct, IProductMedia, NewProduct } from "../../store-shared/product/types";
-import { IUser, NewUser } from "../../uac-shared/user/types";
+import { IUser } from "../../uac-shared/user/types";
+
+const loadJsonFile = (path: string) => JSON.parse(readFileSync(path, 'utf-8'));
+
+const products = loadJsonFile("../../../_data/products.json");
+const customers = loadJsonFile("../../../_data/customers.json");
 
 const db = database();
 

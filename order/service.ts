@@ -1,7 +1,3 @@
-import { database } from "../../core/database"
-import { basicCrudService, basicRelationService } from "../../core/express/service/common";
-import { calculateTotal } from "../../store-shared/cart/util";
-import { IOrder, IOrderCreateRequest, IOrderFull, IProduct, IProductFile } from "../../store-shared/product/types";
 import {
     ApiError,
     CheckoutPaymentIntent,
@@ -11,15 +7,17 @@ import {
     OrdersController,
     PaymentsController,
 } from "@paypal/paypal-server-sdk";
-import { Product } from "../product/service";
+import { getAppConfig } from "../../../config";
+import { database } from "../../core/database";
+import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { error500 } from "../../core/express/util";
-import { omit } from "ts-functional";
-import { NewObj } from "../../core-shared/express/types";
 import { render } from "../../core/render";
 import { sendEmail } from "../../core/sendEmail";
-import {OrderConfirmation} from "../components/orderConfirmation";
-import { getAppConfig } from "../../../config";
+import { IOrder, IOrderCreateRequest, IOrderFull, IProduct, IProductFile } from "../../store-shared/product/types";
 import { User } from "../../uac/user/service";
+import { calculateTotal } from "../cart/util";
+import { OrderConfirmation } from "../components/orderConfirmation";
+import { Product } from "../product/service";
 
 const db = database();
 
