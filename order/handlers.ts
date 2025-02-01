@@ -1,11 +1,12 @@
 import { Query } from "pg";
 import { pipeTo } from "serverless-api-boilerplate";
+import { pipe } from "ts-functional";
 import { HandlerArgs } from "../../core/express/types";
-import { getBody, getBodyParam, getParam, getParams } from "../../core/express/util";
-import { IOrder, IOrderFull, IProduct } from "../../store-shared/product/types";
+import { getBody, getBodyParam, getParam, getParams, getQueryParam } from "../../core/express/util";
+import { ICartTotals, IOrder, IOrderFull } from "../../store-shared/order/types";
+import { IProduct } from "../../store-shared/product/types";
 import { CheckPermissions } from "../../uac/permission/util";
 import { Order } from "./service";
-import { pipe } from "ts-functional";
 
 class OrderHandlerClass {
     @CheckPermissions("order.view")
@@ -56,6 +57,10 @@ class OrderHandlerClass {
     @CheckPermissions("order.view")
     public getItems (...args:HandlerArgs<Query>):Promise<IProduct[]> {
         return pipeTo(Order.items.get, getParam("userId"), getParam("orderId"))(args);
+    }
+
+    public getCartTotal (...args:HandlerArgs<Query>):Promise<ICartTotals> {
+        return pipeTo(Order.cart.getTotals, getQueryParam("productIds"), getQueryParam("couponCode"))(args);
     }
 }
 

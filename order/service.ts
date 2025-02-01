@@ -13,7 +13,8 @@ import { basicCrudService, basicRelationService } from "../../core/express/servi
 import { error500 } from "../../core/express/util";
 import { render } from "../../core/render";
 import { sendEmail } from "../../core/sendEmail";
-import { IOrder, IOrderCreateRequest, IOrderFull, IProduct, IProductFile } from "../../store-shared/product/types";
+import { ICartTotals, IOrder, IOrderCreateRequest, IOrderFull } from "../../store-shared/order/types";
+import { IProduct, IProductFile } from "../../store-shared/product/types";
 import { User } from "../../uac/user/service";
 import { calculateTotal } from "../cart/util";
 import { OrderConfirmation } from "../components/orderConfirmation";
@@ -214,6 +215,11 @@ export const Order = {
                 .where("orders.status", "complete");
 
             return [...productFiles, ...subProductFiles];
+        }
+    },
+    cart: {
+        getTotals: async (products: number[], couponCode: string):Promise<ICartTotals> => {
+            return await calculateTotal({ids: products, couponCode});
         }
     }
 }

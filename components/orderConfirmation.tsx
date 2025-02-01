@@ -1,7 +1,8 @@
 import React from 'react';
 import { getAppConfig } from '../../../config';
-import { IOrder, IProduct } from '../../store-shared/product/types';
-import { IUser, SafeUser } from '../../uac-shared/user/types';
+import { IOrder } from '../../store-shared/order/types';
+import { IProduct } from '../../store-shared/product/types';
+import { SafeUser } from '../../uac-shared/user/types';
 
 export declare interface IOrderConfirmationProps {
     user: SafeUser;

@@ -3,6 +3,9 @@ import { OrderHandlers } from "./handlers";
 import { Order } from "./service";
 
 export const OrderEndpoints = {
+    cart: {
+        GET: get(OrderHandlers.getCartTotal),
+    },
     user: {
         ":userId": {
             file: {
