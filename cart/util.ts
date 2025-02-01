@@ -12,14 +12,14 @@ export const calculateTotal = async (cart:IOrderCreateRequest):Promise<ICartTota
     const subtotal = products.reduce((total, product) => {
         const price = product.price;
         return total + calculators.reduce(
-            (price, discount) => discount.productSalePrice(product, price),
+            (price, discountCalc) => discountCalc.productSalePrice(product, price),
             price
         );
     }, 0);
 
     // Calculate the total discount for all products in the cart
-    const discount = Math.max(calculators.reduce(
-        (total, discount) => total + discount.cartDiscount(products, 0.0),
+    const discount = Math.min(calculators.reduce(
+        (curDiscount, discountCalc) => discountCalc.cartDiscount(products, subtotal, curDiscount),
         0
     ), subtotal);
 
