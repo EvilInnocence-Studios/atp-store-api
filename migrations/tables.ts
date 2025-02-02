@@ -1,7 +1,7 @@
 import { Knex } from "knex";
 
 export const productsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
+    t.bigIncrements();
     t.string("name", 255).notNullable();
     t.string("sku", 64).notNullable().unique();
     t.string("url", 255).notNullable().unique();
@@ -17,13 +17,13 @@ export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.text("metaTitle");
     t.text("metaDescription");
     t.text("metaKeywords");
-    t.integer("thumbnailId").unsigned();
-    t.integer("mainImageId").unsigned();
+    t.bigInteger("thumbnailId").unsigned();
+    t.bigInteger("mainImageId").unsigned();
 };
 
 export const productMediaTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
     t.string("url", 255).notNullable();
     t.text("caption");
     t.integer("order");
@@ -32,52 +32,52 @@ export const productMediaTable = (t:Knex.CreateTableBuilder) => {
 };
 
 export const productFilesTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
     t.string("fileName", 255).notNullable();
     t.string("folder", 255).notNullable();
     t.foreign("productId").references("products.id");
 };
 
 export const productTagsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
-    t.integer("tagId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
+    t.bigInteger("tagId").unsigned().notNullable();
     t.foreign("productId").references("products.id");
     t.foreign("tagId").references("tags.id");
     t.unique(["productId", "tagId"]);
 };
 
 export const wishlistsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
-    t.integer("userId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
+    t.bigInteger("userId").unsigned().notNullable();
     t.foreign("productId").references("products.id")
     t.foreign("userId").references("users.id");
     t.unique(["productId", "userId"]);
 };
 
 export const relatedProductsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
-    t.integer("relatedProductId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
+    t.bigInteger("relatedProductId").unsigned().notNullable();
     t.foreign("productId").references("products.id");
     t.foreign("relatedProductId").references("products.id");
     t.unique(["productId", "relatedProductId"]);
 };
 
 export const subProductsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("productId").unsigned().notNullable();
-    t.integer("subProductId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("productId").unsigned().notNullable();
+    t.bigInteger("subProductId").unsigned().notNullable();
     t.foreign("productId").references("products.id");
     t.foreign("subProductId").references("products.id");
     t.unique(["productId", "subProductId"]);
 };
 
 export const ordersTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("userId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("userId").unsigned().notNullable();
     t.foreign("userId").references("users.id");
     t.decimal("total", 10, 2).notNullable();
     t.decimal("subtotal", 10, 2).notNullable();
@@ -89,19 +89,19 @@ export const ordersTable = (t:Knex.CreateTableBuilder) => {
 };
 
 export const orderLineItemsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
-    t.integer("orderId").unsigned().notNullable();
+    t.bigIncrements();
+    t.bigInteger("orderId").unsigned().notNullable();
     t.foreign("orderId").references("orders.id");
-    t.integer("productId").unsigned().notNullable();
+    t.bigInteger("productId").unsigned().notNullable();
     t.foreign("productId").references("products.id");
     t.integer("quantity").notNullable();
 };
 
 export const discountsTable = (t:Knex.CreateTableBuilder) => {
-    t.increments().unsigned();
+    t.bigIncrements();
     t.string("name").notNullable();
     t.enum("type", ["product", "cart"]).notNullable().defaultTo("product");
-    t.text("amount").notNullable();
+    t.decimal("amount").notNullable();
     t.string("couponCode");
     t.integer("permissionId").unsigned();
 }

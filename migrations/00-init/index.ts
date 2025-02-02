@@ -13,6 +13,8 @@ import { insertProducts } from "./product";
 import { getTags } from "./util";
 
 const loadJsonFile = (path: string) => JSON.parse(readFileSync(path, 'utf-8'));
+const products = loadJsonFile("_data/products.json");
+const customers = loadJsonFile("_data/customers.json");
 
 const db = database();
 
@@ -43,8 +45,6 @@ export const init:IMigration = {
     ,
     priority: 1,
     initData: async () => {
-        const products = loadJsonFile("../../../../_data/products.json");
-        const customers = loadJsonFile("../../../../_data/customers.json");
 
         console.log("Importing product data");
 
