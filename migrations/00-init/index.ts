@@ -193,7 +193,7 @@ export const init:IMigration = {
 
             // Get the related products
             console.log(`  Updating related products`);
-            const relatedProducts = product.related_products.filter(r => productIds.includes(parseInt(r.linked_product_id)));
+            const relatedProducts = product.related_products.filter(r => productIds.includes(r.linked_product_id));
 
             // Insert the related products
             const relatedPromise = !!insertedProduct && relatedProducts.length > 0

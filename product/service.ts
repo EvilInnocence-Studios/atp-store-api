@@ -45,7 +45,7 @@ export const Product = {
                 .onConflict(["productId", "url"]).ignore();
             return newMedia;
         },
-        remove: async (productId: number, mediaId: number):Promise<null> => {
+        remove: async (productId: number, mediaId: string):Promise<null> => {
             const media:IProductMedia = await Product.media.loadById(mediaId);
 
             // Remove file from S3

@@ -50,7 +50,7 @@ const paymentsController = new PaymentsController(client);
 // - add paypal config to env
 // - finish integration with paypal
 
-const createOrder = async (userId: number, products:IProduct[], total: number) => {
+const createOrder = async (products:IProduct[], total: number) => {
     const collect = {
         body: {
             intent: CheckoutPaymentIntent.Capture,
@@ -119,18 +119,18 @@ const captureOrder = async (transactionId: string) => {
 
 export const Order = {
     ...basicCrudService<IOrder>("orders", "createdAt"),
-    getFull: async (id: number):Promise<IOrderFull> => {
+    getFull: async (id: string):Promise<IOrderFull> => {
         const order = await Order.loadById(id);
         const items = await Order.items.get(id);
         const files = await Order.files.getByOrder(id);
         return { ...order, items, files };
     },
     items: basicRelationService<IProduct>("orderLineItems", "orderId", "products", "productId"),
-    start: async (userId: number, order: IOrderCreateRequest):Promise<IOrder> => {
+    start: async (userId: string, order: IOrderCreateRequest):Promise<IOrder> => {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
         const total = await calculateTotal(order);
 
-        const payPalResult = await createOrder(userId, products, total.total);
+        const payPalResult = await createOrder(products, total.total);
 
         if(payPalResult) {
             const newOrder = await Order.create({
@@ -175,7 +175,7 @@ export const Order = {
         }
     },
     files: {
-        getByOrder: async (orderId: number):Promise<IProductFile[]> => {
+        getByOrder: async (orderId: string):Promise<IProductFile[]> => {
             const productFiles = await db
                 .select("productFiles.*")
                 .from("productFiles")
@@ -218,7 +218,7 @@ export const Order = {
         }
     },
     cart: {
-        getTotals: async (products: number[], couponCode: string):Promise<ICartTotals> => {
+        getTotals: async (products: string[], couponCode: string):Promise<ICartTotals> => {
             return await calculateTotal({ids: products, couponCode});
         }
     }
