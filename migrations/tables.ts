@@ -103,5 +103,5 @@ export const discountsTable = (t:Knex.CreateTableBuilder) => {
     t.enum("type", ["product", "cart"]).notNullable().defaultTo("product");
     t.decimal("amount").notNullable();
     t.string("couponCode");
-    t.integer("permissionId").unsigned();
+    t.bigInteger("permissionId").unsigned();
 }

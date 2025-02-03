@@ -13,8 +13,6 @@ import { insertProducts } from "./product";
 import { getTags } from "./util";
 
 const loadJsonFile = (path: string) => JSON.parse(readFileSync(path, 'utf-8'));
-const products = loadJsonFile("_data/products.json");
-const customers = loadJsonFile("_data/customers.json");
 
 const db = database();
 
@@ -47,6 +45,9 @@ export const init:IMigration = {
     initData: async () => {
 
         console.log("Importing product data");
+
+        const products = loadJsonFile("_data/products.json");
+        const customers = loadJsonFile("_data/customers.json");
 
         const insertedProducts = await insertProducts(products);
         
