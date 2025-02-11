@@ -1,6 +1,7 @@
 import { flatten, trim, unique } from "ts-functional";
 import { figureMap, figureSynonyms, translateRequires } from "./figureMap";
 import { Product } from "./init";
+import { readFileSync } from "fs";
 
 export const getCatNames = (product:Product) =>
     unique(product.categories.map(c => c.name))
@@ -14,3 +15,5 @@ export const getTags = (product:Product) => flatten(unique([
     ...(product.requires || ""          ).split(",").map(trim).filter((a:any) => !!a).map(translateRequires),
     getCatNames(product),
 ]));
+
+export const loadJsonFile = (path: string) => JSON.parse(readFileSync(path, 'utf-8'));
