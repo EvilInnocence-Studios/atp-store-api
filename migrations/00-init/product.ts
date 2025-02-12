@@ -12,7 +12,7 @@ const db = database();
 
 export const insertProducts = async (products:Product[]):Promise<IProduct[]> => 
     await db("products").insert((products).map<NewProduct>(p => ({
-            id: parseInt(p.entity_id),
+            id: p.entity_id,
             name: p.name,
             sku: p.sku,
 
@@ -205,7 +205,7 @@ export const insertProductData = async ():Promise<any> => {
         const relatedPromise = !!insertedProduct && relatedProducts.length > 0
             ? db("relatedProducts").insert(product.related_products.map(r => ({
                 productId: insertedProduct.id,
-                relatedProductId: parseInt(r.linked_product_id),
+                relatedProductId: r.linked_product_id,
             })))
             : Promise.resolve();
 
