@@ -1,10 +1,10 @@
 import { pipeTo } from "serverless-api-boilerplate";
 import { Query } from "../../core-shared/express/types";
+import { getBody, getParam } from "../../core/express/extractors";
 import { HandlerArgs } from "../../core/express/types";
 import { IDiscount } from "../../store-shared/discount/types";
 import { CheckPermissions } from "../../uac/permission/util";
 import { Discount } from "./service";
-import { getBody, getBodyParam, getParam } from "../../core/express/util";
 
 class DiscountHandlerClass {
     @CheckPermissions("discount.view")

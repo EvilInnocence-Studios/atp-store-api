@@ -2,10 +2,11 @@ import { pipeTo } from "serverless-api-boilerplate";
 import { Query } from "../../core-shared/express/types";
 import { database } from '../../core/database';
 import { HandlerArgs } from '../../core/express/types';
-import { getBody, getBodyParam, getFile, getParam, getParams } from "../../core/express/util";
-import { IProductFull, IProductMedia } from "../../store-shared/product/types";
-import { CheckPermissions } from "../../uac/permission/util";
+import { getBody, getBodyParam, getFile, getParam, getParams, getUserPermissions } from "../../core/express/extractors";
+import { IProduct, IProductFull, IProductMedia } from "../../store-shared/product/types";
+import { CheckPermissions, hasPermission } from "../../uac/permission/util";
 import { Product } from "./service";
+import { prop } from "ts-functional";
 
 const db = database();
 
@@ -17,7 +18,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.view")
     public search (...args:HandlerArgs<Query>):Promise<IProductFull[]> {
-        return Product.searchFull(getBody(args));
+        return pipeTo(Product.searchFull, getBody, getUserPermissions)(args);
     }
 
     @CheckPermissions("product.update")
@@ -76,8 +77,13 @@ class ProductHandlerClass {
     }
 
     @CheckPermissions("product.view")
-    public getRelated (...args:HandlerArgs<Query>):Promise<any[]> {
-        return pipeTo(Product.related.get, getParam("productId"))(args);
+    public async getRelated (...args:HandlerArgs<Query>):Promise<IProduct[]> {
+        const relatedProducts = await pipeTo(Product.related.get, getParam("productId"))(args);
+        
+        const userPermissions = await getUserPermissions(args);
+        return hasPermission(["product.disabled"], userPermissions)
+            ? relatedProducts
+            : relatedProducts.filter(prop("enabled"));
     }
 
     @CheckPermissions("product.update")

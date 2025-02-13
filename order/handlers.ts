@@ -2,7 +2,7 @@ import { Query } from "pg";
 import { pipeTo } from "serverless-api-boilerplate";
 import { pipe } from "ts-functional";
 import { HandlerArgs } from "../../core/express/types";
-import { getBody, getBodyParam, getParam, getParams, getQueryParam } from "../../core/express/util";
+import { getBody, getBodyParam, getParam, getParams, getQueryParam } from "../../core/express/extractors";
 import { ICartTotals, IOrder, IOrderFull } from "../../store-shared/order/types";
 import { IProduct } from "../../store-shared/product/types";
 import { CheckPermissions } from "../../uac/permission/util";

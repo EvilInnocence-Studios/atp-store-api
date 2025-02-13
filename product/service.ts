@@ -1,21 +1,21 @@
-import {
-    GetObjectCommand,
-    S3Client
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
+import { mapKeys } from "../../core/express/util";
 import { downloadMedia, removeMedia, uploadMedia } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
-import { mapKeys } from "../../core/express/util";
+import { IPermission } from "../../uac-shared/permissions/types";
 
 const db = database();
 
 export const Product = {
     ...basicCrudService<IProduct>("products"),
-    searchFull: ({offset, perPage, ...query}: Query = {} as Query):Promise<IProductFull[]> => {
-        return db("products")
+    searchFull: async ({offset, perPage, ...query}: Query = {} as Query, userPermissionsPromise:Promise<IPermission[]>):Promise<IProductFull[]> => {
+        //If user does not have product.disabled permission, filter out disabled products
+        const userPermissions = await userPermissionsPromise;
+        const canViewDisabledProducts = userPermissions.find(p => p.name === "product.disabled");
+
+        const stmt = db("products")
             .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
             .leftJoin("productMedia", "products.thumbnailId", "productMedia.id")
             .leftJoin("productTags", "products.id", "productTags.productId")
@@ -23,7 +23,13 @@ export const Product = {
             .groupBy("products.id", "productMedia.url")
             .where(mapKeys(k => `products.${k}`)(query))
             .offset(offset || 0)
-            .limit(perPage || 999999)
+            .limit(perPage || 999999);
+
+        if(!canViewDisabledProducts) {
+            stmt.where({enabled: true});
+        }
+
+        return stmt
             .then((rows) => rows.map((row) => ({
                 ...row,
                 tags: row.tags.filter((tag:string | null) => tag !== null),
