@@ -14,12 +14,14 @@ export const Product = {
         //If user does not have product.disabled permission, filter out disabled products
         const userPermissions = await userPermissionsPromise;
         const canViewDisabledProducts = userPermissions.find(p => p.name === "product.disabled");
+        const canViewUnfilterableTags = userPermissions.find(p => p.name === "tag.unfilterable");
 
         const stmt = db("products")
             .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
             .leftJoin("productMedia", "products.thumbnailId", "productMedia.id")
             .leftJoin("productTags", "products.id", "productTags.productId")
             .leftJoin("tags", "productTags.tagId", "tags.id")
+            .leftJoin("tagGroups", "tags.groupId", "tagGroups.id")
             .groupBy("products.id", "productMedia.url")
             .where(mapKeys(k => `products.${k}`)(query))
             .offset(offset || 0)
@@ -27,6 +29,10 @@ export const Product = {
 
         if(!canViewDisabledProducts) {
             stmt.where({enabled: true});
+        }
+
+        if(!canViewUnfilterableTags) {
+            stmt.where("tagGroups.filterable", true);
         }
 
         return stmt
