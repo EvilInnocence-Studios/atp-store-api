@@ -143,7 +143,7 @@ export const Order = {
             });
 
             await Promise.all(products.map(async (product) => {
-                await Order.items.add(newOrder.id, product.id).onConflict().ignore();
+                await Order.items.add(newOrder.id, product.id);
             }));
 
             return newOrder;
