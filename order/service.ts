@@ -1,16 +1,13 @@
 import {
     ApiError,
     CheckoutPaymentIntent,
-    Client,
-    Environment,
-    LogLevel,
-    OrdersController,
-    PaymentsController,
+    OrdersController
 } from "@paypal/paypal-server-sdk";
 import { getAppConfig } from "../../../config";
 import { database } from "../../core/database";
 import { error500 } from "../../core/express/errors";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
+import { client } from "../../core/paypal";
 import { render } from "../../core/render";
 import { sendEmail } from "../../core/sendEmail";
 import { ICartTotals, IOrder, IOrderCreateRequest, IOrderFull } from "../../store-shared/order/types";
@@ -22,28 +19,7 @@ import { Product } from "../product/service";
 
 const db = database();
 
-const {
-    PAYPAL_CLIENT_ID,
-    PAYPAL_CLIENT_SECRET,
-    PORT = 8080,
-} = process.env;
-
-const client = new Client({
-    clientCredentialsAuthCredentials: {
-        oAuthClientId: PAYPAL_CLIENT_ID as string,
-        oAuthClientSecret: PAYPAL_CLIENT_SECRET as string,
-    },
-    timeout: 0,
-    environment: Environment.Sandbox,
-    logging: {
-        logLevel: LogLevel.Info,
-        logRequest: { logBody: true },
-        logResponse: { logHeaders: true },
-    },
-}); 
-
 const ordersController = new OrdersController(client);
-const paymentsController = new PaymentsController(client);
 
 // TODO
 // - calculate the price of the cart based on items and coupon code
