@@ -20,6 +20,9 @@ export const OrderEndpoints = {
                 finalize: {
                     POST: post(OrderHandlers.finalize),
                 },
+                finalizeFree: {
+                    POST: post(OrderHandlers.finalizeFree),
+                },
                 ":orderId": {
                     GET: get(OrderHandlers.get),
                     PATCH: patch(OrderHandlers.update),

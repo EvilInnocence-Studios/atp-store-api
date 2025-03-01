@@ -16,6 +16,7 @@ import { User } from "../../uac/user/service";
 import { calculateTotal } from "../cart/util";
 import { OrderConfirmation } from "../components/orderConfirmation";
 import { Product } from "../product/service";
+import { prop } from "ts-functional";
 
 const db = database();
 
@@ -149,6 +150,46 @@ export const Order = {
         } else {
             throw error500("Order has no transaction ID");
         }
+    },
+    finalizeFree: async (userId: string, productIds: string[]):Promise<IOrder> => {
+        const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
+        const total = await calculateTotal({ids: productIds, couponCode: ""});
+
+        // Make sure the total is 0
+        if(total.total > 0) {
+            throw error500("Cannot finalize free order with non-free products");
+        }
+
+        // If there are subscription only products in the order, make sure the user is a subscriber
+        const subscriptionProducts = products.filter((product) => product.subscriptionOnly);
+        if(subscriptionProducts.length) {
+            const role = getAppConfig().subscriptionRoleId;
+            const userRoles = await User.roles.get(userId);
+
+            if(!userRoles.map(prop("id")).includes(role)) {
+                throw error500("User must be a subscriber to purchase subscription only products");
+            }
+        }
+
+        const order = await Order.create({
+            userId,
+            status: "complete",
+            ...total,
+            couponCode: "",
+            transactionId: "",
+            createdAt: new Date().toISOString(),
+        });
+
+        await Promise.all(products.map(async (product) => {
+            await Order.items.add(order.id, product.id);
+        }));
+
+        // Send order confirmation email
+        const user = await User.loadById(userId);
+        const html = render(OrderConfirmation, {user, order, products});
+        await sendEmail(getAppConfig().emailTemplates.orderConfirmation.subject, html, [user.email]);
+        
+        return order;
     },
     files: {
         getByOrder: async (orderId: string):Promise<IProductFile[]> => {

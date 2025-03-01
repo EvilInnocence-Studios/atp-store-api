@@ -10,11 +10,33 @@ export declare interface IOrderConfirmationProps {
     products: IProduct[];
 }
 
-export const OrderConfirmation = ({user, order, products}:IOrderConfirmationProps) => 
+export const OrderConfirmation = ({user, order, products}:IOrderConfirmationProps) => <>
+    <style>
+        {`
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 5px;
+                text-align: left;
+            }
+            tbody tr:nth-child(odd) {
+                background-color: #f2f2f2;
+            }
+            tbody tr:nth-child(even) {
+                background-color: #ffffff;
+            }
+            tfoot {
+                border-top: 2px solid black;
+                font-weight: bold;
+            }
+        `}
+    </style>
     <div>
         <h1>Order Confirmation</h1>
         <p>Hi {user.userName},</p>
-        <p>Your order has been placed and your products should be available to download in <a href={`${getAppConfig().publicHost}/my-account/orders`}>your account</a></p>
+        <p>Your order has been placed and your products should be available to download in <a href={`${getAppConfig().publicHost}/my-account/orders/${order.id}`}>your account</a></p>
         <p>Order ID: {order.id}</p>
         <p>Products:</p>
         <table>
@@ -49,7 +71,7 @@ export const OrderConfirmation = ({user, order, products}:IOrderConfirmationProp
                 </tr>
             </tfoot>
         </table>
-        <p>Total: ${order.total}</p>
         <p>Thank you for shopping with us!</p>
         <p><a href={`${getAppConfig().publicHost}/my-account/orders`}>View your orders</a></p>
-    </div>;
+    </div>
+</>;

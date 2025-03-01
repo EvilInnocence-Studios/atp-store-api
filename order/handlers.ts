@@ -34,6 +34,11 @@ class OrderHandlerClass {
         return pipeTo(Order.finalize, getBodyParam("transactionId"))(args);
     }
 
+    @CheckPermissions("order.purchase")
+    public finalizeFree (...args:HandlerArgs<Query>):Promise<any> {
+        return pipeTo(Order.finalizeFree, getParam("userId"), getBodyParam("productIds"))(args);
+    }
+
     @CheckPermissions("order.view")
     public search (...args:HandlerArgs<Query>):Promise<IOrder[]> {
         return pipeTo(Order.search, pipe(getParams, q => ({...q, status: "complete"})))(args);
