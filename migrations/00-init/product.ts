@@ -7,6 +7,7 @@ import { readFileSync } from "fs";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getTags, loadJsonFile } from "./util";
 import { ITag } from "../../../common-shared/tag/types";
+import { fromEnv } from "@aws-sdk/credential-providers";
 
 const db = database();
 
@@ -119,6 +120,7 @@ export const insertProductData = async ():Promise<any> => {
             const s3Path = "media/product";
             const s3Client = new S3Client({
                 region: "us-east-1",
+                credentials: fromEnv(),
                 // Make sure timeouts are long
                 requestHandler: {
                     requestTimeout: 1200000,

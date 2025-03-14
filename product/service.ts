@@ -2,6 +2,7 @@ import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { mapKeys } from "../../core/express/util";
+import { profile } from "../../core/profiler";
 import { downloadMedia, removeMedia, uploadMedia } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
 import { IPermission } from "../../uac-shared/permissions/types";
@@ -34,6 +35,8 @@ export const Product = {
         if(!canViewUnfilterableTags) {
             stmt.where("tagGroups.filterable", true);
         }
+
+        const products = profile("productFetch", async () => await stmt.then(p => p))();
 
         return stmt
             .then((rows) => rows.map((row) => ({
