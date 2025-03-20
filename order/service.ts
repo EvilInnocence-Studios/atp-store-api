@@ -101,7 +101,7 @@ export const Order = {
     items: basicRelationService<IProduct>("orderLineItems", "orderId", "products", "productId"),
     start: async (userId: string, order: IOrderCreateRequest):Promise<IOrder> => {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
-        const total = await calculateTotal(order);
+        const total = await calculateTotal(userId, order);
 
         const payPalResult = await createOrder(products, total.total);
 
@@ -149,7 +149,7 @@ export const Order = {
     },
     finalizeFree: async (userId: string, productIds: string[]):Promise<IOrder> => {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
-        const total = await calculateTotal({ids: productIds, couponCode: ""});
+        const total = await calculateTotal(userId, {ids: productIds, couponCode: ""});
 
         // Make sure the total is 0
         if(total.total > 0) {
@@ -231,8 +231,8 @@ export const Order = {
         }
     },
     cart: {
-        getTotals: async (products: string[], couponCode: string):Promise<ICartTotals> => {
-            return await calculateTotal({ids: products, couponCode});
+        getTotals: async (userId: string, products: string[], couponCode: string):Promise<ICartTotals> => {
+            return await calculateTotal(userId, {ids: products, couponCode});
         }
     }
 }

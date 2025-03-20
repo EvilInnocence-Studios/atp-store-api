@@ -65,7 +65,7 @@ class OrderHandlerClass {
     }
 
     public getCartTotal (...args:HandlerArgs<Query>):Promise<ICartTotals> {
-        return pipeTo(Order.cart.getTotals, getQueryParam("productIds"), getQueryParam("couponCode"))(args);
+        return pipeTo(Order.cart.getTotals, getQueryParam("userId"), getQueryParam("productIds"), getQueryParam("couponCode"))(args);
     }
 }
 
