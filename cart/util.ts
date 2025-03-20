@@ -11,17 +11,17 @@ export const calculateTotal = async (cart:IOrderCreateRequest):Promise<ICartTota
     // Calculate the total price of all products in the cart, including product discounts
     const subtotal = products.reduce((total, product) => {
         const price = product.price;
-        return total + calculators.reduce(
+        return total + Math.floor(calculators.reduce(
             (price, discountCalc) => discountCalc.productSalePrice(product, price),
             price
-        );
+        ) * 100) / 100;
     }, 0);
 
     // Calculate the total discount for all products in the cart
-    const discount = Math.min(calculators.reduce(
+    const discount = Math.floor(Math.min(calculators.reduce(
         (curDiscount, discountCalc) => discountCalc.cartDiscount(products, subtotal, curDiscount),
         0
-    ), subtotal);
+    ), subtotal) * 100) / 100;
 
     return {
         subtotal,

@@ -5,12 +5,20 @@ import { IUser } from "../../../uac-shared/user/types";
 import { database } from "../../../core/database";
 import { IOrder } from "../../../store-shared/order/types";
 import { IProduct } from "../../../store-shared/product/types";
+import { User } from "../../../uac/user/service";
+import { userRoles, users } from "../../../uac/migrations/00-init";
 
 const db = database();
 
 export const insertCustomerData = async () => {
     const customers = loadJsonFile("_data/customers.json");
     const insertedProducts:IProduct[] = await db("products").select("*");
+
+    // Insert admin user
+    console.log("Inserting core users");
+    await db("users").insert(users);
+    await db("userRoles").insert(userRoles);
+    console.log("Core users inserted");
 
     // Show any duplicate values for customer emails
     (customers as Customer[]).map(prop<Customer, "email">("email")).reduce((acc, email) => {

@@ -22,11 +22,6 @@ const db = database();
 
 const ordersController = new OrdersController(client);
 
-// TODO
-// - calculate the price of the cart based on items and coupon code
-// - add paypal config to env
-// - finish integration with paypal
-
 const createOrder = async (products:IProduct[], total: number) => {
     const collect = {
         body: {
@@ -63,6 +58,7 @@ const createOrder = async (products:IProduct[], total: number) => {
             httpStatusCode: httpResponse.statusCode,
         };
     } catch (error) {
+        console.log(error);
         if (error instanceof ApiError) {
             // const { statusCode, headers } = error;
             throw new Error(error.message);
