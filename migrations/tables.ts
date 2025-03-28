@@ -2,18 +2,18 @@ import { Knex } from "knex";
 
 export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.bigIncrements();
-    t.string("name", 255).notNullable();
+    t.string("name", 255);
     t.string("sku", 64).notNullable().unique();
     t.string("url", 255).notNullable().unique();
-    t.text("description").notNullable();
-    t.text("descriptionShort").notNullable();
-    t.enum("productType", ["digital", "grouped"]).notNullable();
-    t.boolean("subscriptionOnly").notNullable();
+    t.text("description");
+    t.text("descriptionShort");
+    t.enum("productType", ["digital", "grouped"]).notNullable().defaultTo("digital");
+    t.boolean("subscriptionOnly").notNullable().defaultTo(false);
     t.date("releaseDate");
     t.string("brokeredAt", 255);
     t.string("brokerageProductId", 255);
-    t.decimal("price", 10, 2).notNullable();
-    t.boolean("enabled").notNullable();
+    t.decimal("price", 10, 2).notNullable().defaultTo(0.00);
+    t.boolean("enabled").notNullable().defaultTo(false);
     t.text("metaTitle");
     t.text("metaDescription");
     t.text("metaKeywords");
