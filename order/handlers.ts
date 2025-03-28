@@ -1,5 +1,5 @@
 import { Query } from "pg";
-import { pipeTo } from "serverless-api-boilerplate";
+import { pipeTo } from "ts-functional";
 import { pipe } from "ts-functional";
 import { HandlerArgs } from "../../core/express/types";
 import { getBody, getBodyParam, getParam, getParams, getQueryParam } from "../../core/express/extractors";
