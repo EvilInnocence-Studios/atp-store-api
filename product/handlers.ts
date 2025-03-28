@@ -53,7 +53,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("media.update")
     public updateMedia (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.media.update, getParam("productId"), getParam("mediaId"), getBody)(args);
+        return pipeTo(Product.media.update, getParam("mediaId"), getBody)(args);
     }
 
     @CheckPermissions("media.delete")

@@ -21,7 +21,10 @@ class OrderHandlerClass {
 
     @CheckPermissions("order.create")
     public create (...args:HandlerArgs<any>):Promise<any> {
-        return pipeTo(Order.create, getParam("userId"), getBody)(args);
+        return Order.create({
+            ...getBody(args),
+            userId: getParam<string>("userId")(args)
+        });
     }
 
     @CheckPermissions("order.purchase")
@@ -46,22 +49,22 @@ class OrderHandlerClass {
 
     @CheckPermissions("order.update")
     public update (...args:HandlerArgs<Partial<any>>):Promise<any> { 
-        return pipeTo(Order.update, getParam("userId"), getParam("orderId"), getBody)(args);
+        return pipeTo(Order.update, getParam("orderId"), getBody)(args);
     }
 
     @CheckPermissions("order.view")
     public get (...args:HandlerArgs<Query>):Promise<any> {
-        return pipeTo(Order.loadById, getParam("userId"), getParam("orderId"))(args);
+        return pipeTo(Order.loadById, getParam("orderId"))(args);
     }
 
     @CheckPermissions("order.delete")
     public remove (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Order.remove, getParam("userId"), getParam("orderId"))(args);
+        return pipeTo(Order.remove, getParam("orderId"))(args);
     }
 
     @CheckPermissions("order.view")
     public getItems (...args:HandlerArgs<Query>):Promise<IProduct[]> {
-        return pipeTo(Order.items.get, getParam("userId"), getParam("orderId"))(args);
+        return pipeTo(Order.items.get, getParam("orderId"))(args);
     }
 
     public getCartTotal (...args:HandlerArgs<Query>):Promise<ICartTotals> {
