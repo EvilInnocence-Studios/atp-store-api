@@ -3,7 +3,7 @@ import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
 import { mapKeys } from "../../core/express/util";
 import { profile } from "../../core/profiler";
-import { downloadMedia, removeMedia, uploadMedia } from "../../core/s3Uploads";
+import { downloadMedia, IFile, removeMedia, uploadMedia } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
 import { IPermission } from "../../uac-shared/permissions/types";
 
@@ -49,14 +49,14 @@ export const Product = {
     subProducts: basicRelationService<IProduct>("subProducts", "productId", "products", "subProductId"),
     media: {
         ...basicCrudService<IProductMedia>("productMedia", "url"),
-        upload: async (productId: number, file: Express.Multer.File):Promise<IProductMedia> => {
+        upload: async (productId: number, file: IFile):Promise<IProductMedia> => {
             // Upload file to S3
             uploadMedia(`media/product/${productId}`, file);
 
             // Create record in database
             // If the productId and url unique key already exists, just return the existing record instead
             const [newMedia] = await db("productMedia")
-                .insert({ productId, url: file.filename, caption: file.filename }, "*")
+                .insert({ productId, url: file.name, caption: file.name }, "*")
                 .onConflict(["productId", "url"]).ignore();
             return newMedia;
         },
@@ -76,15 +76,14 @@ export const Product = {
         get: (productId: number):Promise<IProductMedia[]> => db("productFiles")
             .select("*")
             .where({ productId }),
-        add: (productId: number, folder:string, file: Express.Multer.File):Promise<IProductMedia> => {
-            console.log(file);
-            
+        add: async (productId: number, folder:string, file: IFile):Promise<IProductMedia> => {
             // Upload file to S3
-            uploadMedia(`product/${folder}`, file);
+            await uploadMedia(`products/${folder}`, file);
 
             // Create record in database
+            console.log({ productId, fileName: file.name, folder });
             return db("productFiles")
-                .insert({ productId, fileName: file.originalname, folder }, "*")
+                .insert({ productId, fileName: file.name, folder }, "*")
                 .then((rows) => rows[0]);
         },
         remove: async (productId: number, fileId: number):Promise<null> => {
