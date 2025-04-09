@@ -5,6 +5,14 @@ import { User } from "../../uac/user/service";
 import { Discount } from "../discount/service";
 
 export const calculateTotal = async (userId: string, cart:IOrderCreateRequest):Promise<ICartTotals> => {
+    if(!cart || !cart.ids || cart.ids.length === 0) {
+        return {
+            subtotal: 0,
+            discount: 0,
+            total: 0,
+        };
+    }
+
     const products = await Product.search({offset: 0, perPage: 999999999999, id: cart.ids});
     const discounts = await Discount.search();
     const permissions = await User.permissions.get(userId);

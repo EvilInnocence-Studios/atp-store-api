@@ -41,6 +41,10 @@ export const Product = {
             stmt.where({enabled: true});
         }
 
+        if(!canViewUnviewableTags) {
+            stmt.where("tags.filterable", true);
+        }
+
         const products = profile("productFetch", async () => await stmt.then(p => p))();
 
         return stmt
