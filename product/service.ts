@@ -16,6 +16,7 @@ export const Product = {
         const userPermissions = await userPermissionsPromise;
         const canViewDisabledProducts = userPermissions.find(p => p.name === "product.disabled");
         const canViewUnfilterableTags = userPermissions.find(p => p.name === "tag.unfilterable");
+        const canViewUnviewableTags   = userPermissions.find(p => p.name === "tag.unviewable");
 
         const stmt = db("products")
             .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
@@ -34,6 +35,10 @@ export const Product = {
 
         if(!canViewUnfilterableTags) {
             stmt.where("tagGroups.filterable", true);
+        }
+
+        if(!canViewUnviewableTags) {
+            stmt.where("tagGroups.visible", true);
         }
 
         const products = profile("productFetch", async () => await stmt.then(p => p))();

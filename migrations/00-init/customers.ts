@@ -1,12 +1,12 @@
 import { prop } from "ts-functional";
-import { Customer } from "./init";
-import { loadJsonFile } from "./util";
-import { IUser } from "../../../uac-shared/user/types";
 import { database } from "../../../core/database";
 import { IOrder } from "../../../store-shared/order/types";
 import { IProduct } from "../../../store-shared/product/types";
-import { User } from "../../../uac/user/service";
+import { IUser } from "../../../uac-shared/user/types";
 import { userRoles, users } from "../../../uac/migrations/00-init";
+import { insertUserRoles, insertUsers } from "../../../uac/migrations/util";
+import { Customer } from "./init";
+import { loadJsonFile } from "./util";
 
 const db = database();
 
@@ -16,8 +16,8 @@ export const insertCustomerData = async () => {
 
     // Insert admin user
     console.log("Inserting core users");
-    await db("users").insert(users);
-    await db("userRoles").insert(userRoles);
+    insertUsers(db, users);
+    insertUserRoles(db, userRoles);
     console.log("Core users inserted");
 
     // Show any duplicate values for customer emails
