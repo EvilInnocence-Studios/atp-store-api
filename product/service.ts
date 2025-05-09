@@ -17,12 +17,18 @@ export const Product = {
         const canViewDisabledProducts = userPermissions.find(p => p.name === "product.disabled");
         const canViewUnfilterableTags = userPermissions.find(p => p.name === "tag.unfilterable");
         const canViewUnviewableTags   = userPermissions.find(p => p.name === "tag.unviewable");
+        console.log({ userPermissions, canViewDisabledProducts, canViewUnfilterableTags, canViewUnviewableTags });
 
         const stmt = db("products")
             .select("products.*", db.raw("array_agg(tags.name) as tags"), "productMedia.url as thumbnailUrl")
             .leftJoin("productMedia", "products.thumbnailId", "productMedia.id")
             .leftJoin("productTags", "products.id", "productTags.productId")
-            .leftJoin("tags", "productTags.tagId", "tags.id")
+            .leftJoin("tags", function(){
+                this.on("productTags.tagId", "tags.id");
+                if (!canViewUnfilterableTags && !canViewUnviewableTags) {
+                    this.andOn("tags.filterable", db.raw("true"));
+                }
+            })
             .leftJoin("tagGroups", function() {
                 this.on("tags.groupId", "tagGroups.id");
                 if (!canViewUnfilterableTags) {
@@ -41,10 +47,7 @@ export const Product = {
             stmt.where({enabled: true});
         }
 
-        if(!canViewUnviewableTags) {
-            stmt.where("tags.filterable", true);
-        }
-
+console.log(stmt.toSQL().sql);
         const products = profile("productFetch", async () => await stmt.then(p => p))();
 
         return stmt

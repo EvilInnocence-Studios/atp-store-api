@@ -21,10 +21,10 @@ class OrderHandlerClass {
 
     @CheckPermissions("order.create")
     public create (...args:HandlerArgs<any>):Promise<any> {
-        return Order.create({
-            ...getBody(args),
-            userId: getParam<string>("userId")(args)
-        });
+        return Order.createFromProducts(
+            getBody<{productIds:string[]}>(args).productIds,
+            getParam<string>("userId")(args),
+        );
     }
 
     @CheckPermissions("order.purchase")

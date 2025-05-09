@@ -98,6 +98,25 @@ export const Order = {
         const files = await Order.files.getByOrder(id);
         return { ...order, items, files };
     },
+    createFromProducts: async (productIds: string[], userId: string):Promise<IOrder> => {
+        const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
+        const total = await calculateTotal(userId, {ids: productIds, couponCode: ""});
+
+        const order = await Order.create({
+            userId,
+            status: "complete",
+            ...total,
+            couponCode: "",
+            transactionId: "",
+            createdAt: new Date().toISOString(),
+        });
+
+        await Promise.all(products.map(async (product) => {
+            await Order.items.add(order.id, product.id);
+        }));
+
+        return order;
+    },
     items: basicRelationService<IProduct>("orderLineItems", "orderId", "products", "productId"),
     start: async (userId: string, order: IOrderCreateRequest):Promise<IOrder> => {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
