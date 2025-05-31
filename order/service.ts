@@ -253,5 +253,13 @@ export const Order = {
         getTotals: async (userId: string, products: string[], couponCode: string):Promise<ICartTotals> => {
             return await calculateTotal(userId, {ids: products, couponCode});
         }
+    },
+    report: {
+        sales: {
+            get: async ():Promise<any> => {
+                // Placeholder for sales report logic
+                return db.select("*").from("orders").where("status", "complete");
+            }
+        }
     }
 }

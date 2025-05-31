@@ -70,6 +70,11 @@ class OrderHandlerClass {
     public getCartTotal (...args:HandlerArgs<Query>):Promise<ICartTotals> {
         return pipeTo(Order.cart.getTotals, getQueryParam("userId"), getQueryParam("productIds"), getQueryParam("couponCode"))(args);
     }
+
+    @CheckPermissions("report.sales")
+    public getSalesReport (...args:HandlerArgs<Query>):Promise<any> {
+        return Order.report.sales.get();
+    }
 }
 
 export const OrderHandlers = new OrderHandlerClass();

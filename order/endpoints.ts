@@ -6,6 +6,11 @@ export const OrderEndpoints = {
     cart: {
         GET: get(OrderHandlers.getCartTotal),
     },
+    report: {
+        sales: {
+            GET: get(OrderHandlers.getSalesReport),
+        }
+    },
     user: {
         ":userId": {
             file: {
