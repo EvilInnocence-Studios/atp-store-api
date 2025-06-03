@@ -47,7 +47,6 @@ export const Product = {
             stmt.where({enabled: true});
         }
 
-console.log(stmt.toSQL().sql);
         const products = profile("productFetch", async () => await stmt.then(p => p))();
 
         return stmt

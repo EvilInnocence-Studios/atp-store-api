@@ -159,7 +159,10 @@ export const Order = {
             const user = await User.loadById(order.userId);
             const products = await Order.items.get(order.id);
             const html = render(OrderConfirmation, {user, order, products});
-            await sendEmail(getAppConfig().emailTemplates.orderConfirmation.subject, html, [user.email]);
+            await sendEmail(
+                getAppConfig().emailTemplates.orderConfirmation.subject,
+                html,
+                [user.email, getAppConfig().supportEmail]);
 
             return finalOrder;
         } else {
@@ -202,7 +205,10 @@ export const Order = {
         // Send order confirmation email
         const user = await User.loadById(userId);
         const html = render(OrderConfirmation, {user, order, products});
-        await sendEmail(getAppConfig().emailTemplates.orderConfirmation.subject, html, [user.email]);
+        await sendEmail(
+            getAppConfig().emailTemplates.orderConfirmation.subject,
+            html,
+            [user.email, getAppConfig().supportEmail]);
         
         return order;
     },
