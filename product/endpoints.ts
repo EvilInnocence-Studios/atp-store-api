@@ -34,7 +34,11 @@ export const ProductEndpoints = {
             },
             file: {
                 GET: get(ProductHandlers.getFiles),
-                POST: upload(ProductHandlers.addFile),
+                uploadUrl: {
+                    GET: get(ProductHandlers.getUploadUrl),
+                },
+                // POST: upload(ProductHandlers.uploadFile),
+                POST: post(ProductHandlers.addFile),
                 ":fileId": {
                     DELETE: del(ProductHandlers.removeFile),
                     download: {

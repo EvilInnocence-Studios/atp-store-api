@@ -2,11 +2,12 @@ import { pipeTo } from "ts-functional";
 import { Query } from "../../core-shared/express/types";
 import { database } from '../../core/database';
 import { HandlerArgs } from '../../core/express/types';
-import { getBody, getBodyParam, getFile, getParam, getParams, getUserPermissions } from "../../core/express/extractors";
-import { IProduct, IProductFull, IProductMedia } from "../../store-shared/product/types";
+import { getBody, getBodyParam, getFile, getParam, getParams, getQueryParam, getUserPermissions } from "../../core/express/extractors";
+import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
 import { CheckPermissions, hasPermission } from "../../uac/permission/util";
 import { Product } from "./service";
 import { prop } from "ts-functional";
+import { getPresignedUploadUrl } from "../../core/s3Uploads";
 
 const db = database();
 
@@ -102,8 +103,20 @@ class ProductHandlerClass {
     }
 
     @CheckPermissions("product.update")
-    public addFile (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.files.add, getParam("productId"), getBodyParam("folder"), getFile)(args);
+    public getUploadUrl (...args:HandlerArgs<Query>):Promise<string> {
+        return pipeTo(getPresignedUploadUrl, getQueryParam("path"))(args);
+    }
+
+    @CheckPermissions("product.update")
+    public uploadFile (...args:HandlerArgs<Partial<any>>):Promise<IProductFile> {
+        console.log("Adding file to product");
+        return pipeTo(Product.files.upload, getParam<string>("productId"), getBodyParam("folder"), getFile)(args);
+    }
+
+    @CheckPermissions("product.update")
+    public addFile (...args:HandlerArgs<Partial<IProductFile>>):Promise<IProductFile> {
+        console.log("Adding file to product");
+        return pipeTo(Product.files.add, getParam("productId"), getBody)(args);
     }
 
     @CheckPermissions("product.delete")

@@ -87,9 +87,22 @@ export const Product = {
         get: (productId: number):Promise<IProductMedia[]> => db("productFiles")
             .select("*")
             .where({ productId }),
-        add: async (productId: number, folder:string, file: IFile):Promise<IProductMedia> => {
+        add: async (productId: string, file: Partial<IProductFile>):Promise<IProductFile> => {
+            // Ensure file has a name and folder
+            if (!file.fileName || !file.folder) {
+                throw new Error("File must have a name and folder");
+            }
+
+            // Create record in database
+            const [newFile] = await db("productFiles")
+                .insert({ productId, ...file }, "*")
+            return newFile;
+        },
+        upload: async (productId: string, folder:string, file: IFile):Promise<IProductFile> => {
             // Upload file to S3
+            console.log(`Uploading file for product ${productId} to folder ${folder}:`, file);
             await uploadMedia(`products/${folder}`, file);
+            console.log(`File uploaded successfully for product ${productId} to folder ${folder}:`, file);
 
             // Create record in database
             console.log({ productId, fileName: file.name, folder });
