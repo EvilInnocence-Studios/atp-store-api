@@ -3,7 +3,9 @@ import {
     CheckoutPaymentIntent,
     OrdersController
 } from "@paypal/paypal-server-sdk";
+import { prop } from "ts-functional";
 import { getAppConfig } from "../../../config";
+import { Setting } from "../../common/setting/service";
 import { database } from "../../core/database";
 import { error500 } from "../../core/express/errors";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
@@ -16,7 +18,6 @@ import { User } from "../../uac/user/service";
 import { calculateTotal } from "../cart/util";
 import { OrderConfirmation } from "../components/orderConfirmation";
 import { Product } from "../product/service";
-import { prop } from "ts-functional";
 
 const db = database();
 
@@ -159,10 +160,12 @@ export const Order = {
             const user = await User.loadById(order.userId);
             const products = await Order.items.get(order.id);
             const html = render(OrderConfirmation, {user, order, products});
+            const supportEmail = await Setting.get("supportEmail");
+            const subject = await Setting.get("orderConfirmationSubject");
             await sendEmail(
-                getAppConfig().emailTemplates.orderConfirmation.subject,
+                subject,
                 html,
-                [user.email, getAppConfig().supportEmail]);
+                [user.email, supportEmail]);
 
             return finalOrder;
         } else {
@@ -181,7 +184,7 @@ export const Order = {
         // If there are subscription only products in the order, make sure the user is a subscriber
         const subscriptionProducts = products.filter((product) => product.subscriptionOnly);
         if(subscriptionProducts.length) {
-            const role = getAppConfig().subscriptionRoleId;
+            const role = await Setting.get("subscriptionRole");
             const userRoles = await User.roles.get(userId);
 
             if(!userRoles.map(prop("id")).includes(role)) {
@@ -205,10 +208,12 @@ export const Order = {
         // Send order confirmation email
         const user = await User.loadById(userId);
         const html = render(OrderConfirmation, {user, order, products});
+        const supportEmail = await Setting.get("supportEmail");
+        const subject = await Setting.get("orderConfirmationSubject");
         await sendEmail(
-            getAppConfig().emailTemplates.orderConfirmation.subject,
+            subject,
             html,
-            [user.email, getAppConfig().supportEmail]);
+            [user.email, supportEmail]);
         
         return order;
     },
