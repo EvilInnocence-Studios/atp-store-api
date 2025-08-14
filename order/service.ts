@@ -3,13 +3,11 @@ import {
     CheckoutPaymentIntent,
     OrdersController
 } from "@paypal/paypal-server-sdk";
-import { prop } from "ts-functional";
-import { getAppConfig } from "../../../config";
 import { Setting } from "../../common/setting/service";
 import { database } from "../../core/database";
 import { error500 } from "../../core/express/errors";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
-import { client } from "../../core/paypal";
+import { getPayPalClient } from "../../core/paypal";
 import { render } from "../../core/render";
 import { sendEmail } from "../../core/sendEmail";
 import { ICartTotals, IOrder, IOrderCreateRequest, IOrderFull } from "../../store-shared/order/types";
@@ -17,11 +15,12 @@ import { IProduct, IProductFile } from "../../store-shared/product/types";
 import { User } from "../../uac/user/service";
 import { calculateTotal } from "../cart/util";
 import { OrderConfirmation } from "../components/orderConfirmation";
+import { validateFreeOrder } from "../plugin/freeOrderValidator";
 import { Product } from "../product/service";
 
 const db = database();
 
-const ordersController = new OrdersController(client);
+const getOrdersController = async () => new OrdersController(await getPayPalClient());
 
 const createOrder = async (products:IProduct[], total: number) => {
     const collect = {
@@ -49,7 +48,8 @@ const createOrder = async (products:IProduct[], total: number) => {
     }; 
 
     try {
-        const { body, ...httpResponse } = await ordersController.ordersCreate(
+        const controller = await getOrdersController();
+        const { body, ...httpResponse } = await controller.ordersCreate(
             collect
         );
         // Get more response info...
@@ -74,7 +74,8 @@ const captureOrder = async (transactionId: string) => {
     };
 
     try {
-        const { body, ...httpResponse } = await ordersController.ordersCapture(
+        const controller = await getOrdersController();
+        const { body, ...httpResponse } = await controller.ordersCapture(
             collect
         );
         // Get more response info...
@@ -176,20 +177,10 @@ export const Order = {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
         const total = await calculateTotal(userId, {ids: productIds, couponCode: ""});
 
+        const [isValid, message] = await validateFreeOrder(userId, products);
         // Make sure the total is 0
-        if(total.total > 0) {
-            throw error500("Cannot finalize free order with non-free products");
-        }
-
-        // If there are subscription only products in the order, make sure the user is a subscriber
-        const subscriptionProducts = products.filter((product) => product.subscriptionOnly);
-        if(subscriptionProducts.length) {
-            const role = await Setting.get("subscriptionRole");
-            const userRoles = await User.roles.get(userId);
-
-            if(!userRoles.map(prop("id")).includes(role)) {
-                throw error500("User must be a subscriber to purchase subscription only products");
-            }
+        if(!isValid) {
+            throw error500(message);
         }
 
         const order = await Order.create({

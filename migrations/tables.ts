@@ -8,10 +8,7 @@ export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.text("description");
     t.text("descriptionShort");
     t.enum("productType", ["digital", "grouped"]).notNullable().defaultTo("digital");
-    t.boolean("subscriptionOnly").notNullable().defaultTo(false);
     t.date("releaseDate");
-    t.string("brokeredAt", 255);
-    t.string("brokerageProductId", 255);
     t.decimal("price", 10, 2).notNullable().defaultTo(0.00);
     t.boolean("enabled").notNullable().defaultTo(false);
     t.text("metaTitle");
