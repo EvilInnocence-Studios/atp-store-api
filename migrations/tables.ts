@@ -14,8 +14,8 @@ export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.text("metaTitle");
     t.text("metaDescription");
     t.text("metaKeywords");
-    t.bigInteger("thumbnailId").unsigned().references("productMedia.id").onDelete("SET NULL");
-    t.bigInteger("mainImageId").unsigned().references("productMedia.id").onDelete("SET NULL");
+    t.bigInteger("thumbnailId").unsigned();
+    t.bigInteger("mainImageId").unsigned();
 };
 
 export const productMediaTable = (t:Knex.CreateTableBuilder) => {

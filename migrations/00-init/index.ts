@@ -84,17 +84,25 @@ export const init:IMigration = {
         .dropTableIfExists("productFiles"   )
         .dropTableIfExists("productMedia"   )
         .dropTableIfExists("products"       ),
-    up: async () => db.schema
-        .createTable("products",        productsTable       )
-        .createTable("productMedia",    productMediaTable   )
-        .createTable("productFiles",    productFilesTable   )
-        .createTable("productTags",     productTagsTable    )
-        .createTable("relatedProducts", relatedProductsTable)
-        .createTable("subProducts",     subProductsTable    )
-        .createTable("wishlists",       wishlistsTable      )
-        .createTable("orders",          ordersTable         )
-        .createTable("orderLineItems",  orderLineItemsTable )
-        .createTable("discounts",       discountsTable      ),
+    up: async () => {
+        await db.schema
+            .createTable("products",        productsTable       )
+            .createTable("productMedia",    productMediaTable   )
+            .createTable("productFiles",    productFilesTable   )
+            .createTable("productTags",     productTagsTable    )
+            .createTable("relatedProducts", relatedProductsTable)
+            .createTable("subProducts",     subProductsTable    )
+            .createTable("wishlists",       wishlistsTable      )
+            .createTable("orders",          ordersTable         )
+            .createTable("orderLineItems",  orderLineItemsTable )
+            .createTable("discounts",       discountsTable      );
+
+        // Add foreign key references after tables are created
+        await db.schema.alterTable("products", (table) => {
+            table.foreign("thumbnailId").references("productMedia.id").onDelete("SET NULL");
+            table.foreign("mainImageId").references("productMedia.id").onDelete("SET NULL");
+        });
+    },
     initData: () => Promise.all([
         insertRoles(db, roles),
         insertPermissions(db, permissions),
