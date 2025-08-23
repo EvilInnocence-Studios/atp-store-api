@@ -34,6 +34,11 @@ const permissions = [
     { name: "discount.update",      description: "Can update discounts"  },
     { name: "discount.create",      description: "Can create discounts"  },
     { name: "discount.delete",      description: "Can delete discounts"  },
+
+    { name: "wishlist.view",       description: "Can view wishlists"    },
+    { name: "wishlist.create",     description: "Can create wishlists"  },
+    { name: "wishlist.delete",     description: "Can delete wishlists"  },
+    { name: "wishlist.update",     description: "Can update wishlists"  },
 ];
 
 const rolePermissions = [
@@ -53,12 +58,18 @@ const rolePermissions = [
     { roleName: "SuperUser", permissionName: "discount.update" },
     { roleName: "SuperUser", permissionName: "discount.create" },
     { roleName: "SuperUser", permissionName: "discount.delete" },
+    { roleName: "SuperUser", permissionName: "wishlist.view" },
+    { roleName: "SuperUser", permissionName: "wishlist.create" },
+    { roleName: "SuperUser", permissionName: "wishlist.delete" },
+    { roleName: "SuperUser", permissionName: "wishlist.update" },
     { roleName: "Public", permissionName: "product.view" },
     { roleName: "Public", permissionName: "media.view" },
-    { roleName: "Customer", permissionName: "user.create" },
+    { roleName: "Public", permissionName: "discount.view" },
+    { roleName: "Customer", permissionName: "user.view" },
     { roleName: "Customer", permissionName: "tag.view" },
     { roleName: "Customer", permissionName: "product.view" },
     { roleName: "Customer", permissionName: "media.view" },
+    { roleName: "Customer", permissionName: "discount.view" },
     { roleName: "Customer", permissionName: "synonym.view" },
     { roleName: "Customer", permissionName: "banner.view" },
     { roleName: "Customer", permissionName: "order.view" },
@@ -66,6 +77,10 @@ const rolePermissions = [
     { roleName: "Customer", permissionName: "order.create" },
     { roleName: "Customer", permissionName: "order.delete" },
     { roleName: "Customer", permissionName: "order.purchase" },
+    { roleName: "Customer", permissionName: "wishlist.view" },
+    { roleName: "Customer", permissionName: "wishlist.create" },
+    { roleName: "Customer", permissionName: "wishlist.delete" },
+    { roleName: "Customer", permissionName: "wishlist.update" },
 ];
 
 export const init:IMigration = {
