@@ -103,11 +103,9 @@ export const init:IMigration = {
             table.foreign("mainImageId").references("productMedia.id").onDelete("SET NULL");
         });
     },
-    initData: () => Promise.all([
-        insertRoles(db, roles),
-        insertPermissions(db, permissions),
-        insertRolePermissions(db, rolePermissions),
-
-    ]),
+    initData: async () => {
+        await insertRoles(db, roles);
+        await insertPermissions(db, permissions);
+        await insertRolePermissions(db, rolePermissions);
+    },
 }
-
