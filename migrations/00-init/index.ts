@@ -73,6 +73,7 @@ const rolePermissions = [
     { roleName: "Customer", permissionName: "synonym.view" },
     { roleName: "Customer", permissionName: "banner.view" },
     { roleName: "Customer", permissionName: "settings.view" },
+    { roleName: "Customer", permissionName: "links.view" },
     { roleName: "Customer", permissionName: "order.view" },
     { roleName: "Customer", permissionName: "order.update" },
     { roleName: "Customer", permissionName: "order.create" },
