@@ -17,6 +17,7 @@ const permissions = [
     { name: "product.update",       description: "Can update products"   },
     { name: "product.create",       description: "Can create products"   },
     { name: "product.delete",       description: "Can delete products"   },
+    { name: "product.disabled",     description: "Can view disabled products"  },
 
     { name: "media.view",           description: "Can view media"        },
     { name: "media.update",         description: "Can update media"      },
@@ -46,6 +47,7 @@ const rolePermissions = [
     { roleName: "SuperUser", permissionName: "product.update" },
     { roleName: "SuperUser", permissionName: "product.create" },
     { roleName: "SuperUser", permissionName: "product.delete" },
+    { roleName: "SuperUser", permissionName: "product.disabled" },
     { roleName: "SuperUser", permissionName: "media.view" },
     { roleName: "SuperUser", permissionName: "media.update" },
     { roleName: "SuperUser", permissionName: "media.create" },
