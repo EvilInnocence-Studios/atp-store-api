@@ -1,3 +1,4 @@
+import { Setting } from "@common/setting/service";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
@@ -8,6 +9,8 @@ import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store
 import { IPermission } from "../../uac-shared/permissions/types";
 
 const db = database();
+
+const mediaFolder = () => Setting.get("productImageFolder");
 
 export const Product = {
     ...basicCrudService<IProduct>("products"),
@@ -62,7 +65,7 @@ export const Product = {
         ...basicCrudService<IProductMedia>("productMedia", "url"),
         upload: async (productId: number, file: IFile):Promise<IProductMedia> => {
             // Upload file to S3
-            uploadMedia(`media/product/${productId}`, file);
+            uploadMedia(await mediaFolder() + `/${productId}`, file);
 
             // Create record in database
             // If the productId and url unique key already exists, just return the existing record instead
@@ -75,7 +78,7 @@ export const Product = {
             const media:IProductMedia = await Product.media.loadById(mediaId);
 
             // Remove file from S3
-            await removeMedia(`media/product/${productId}`, media.url);
+            await removeMedia(await mediaFolder() + `/${productId}`, media.url);
 
             // Remove record from database
             await db("productMedia").where({ id: mediaId }).delete();
