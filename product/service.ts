@@ -1,4 +1,4 @@
-import { Setting } from "@common/setting/service";
+import { Setting } from "../../common/setting/service";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
