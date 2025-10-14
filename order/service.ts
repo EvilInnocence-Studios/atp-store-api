@@ -7,7 +7,7 @@ import { Setting } from "../../common/setting/service";
 import { database } from "../../core/database";
 import { error500 } from "../../core/express/errors";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
-import { getPayPalClient } from "../../core/paypal";
+import { captureOrder, createOrder, getPayPalClient, IPayPalCartItem, PayPalCartGenerator } from "../../core/paypal";
 import { render } from "../../core/render";
 import { sendEmail } from "../../core/sendEmail";
 import { ICartTotals, IOrder, IOrderCreateRequest, IOrderFull } from "../../store-shared/order/types";
@@ -22,75 +22,16 @@ const db = database();
 
 const getOrdersController = async () => new OrdersController(await getPayPalClient());
 
-const createOrder = async (products:IProduct[], total: number) => {
-    const collect = {
-        body: {
-            intent: CheckoutPaymentIntent.Capture,
-            cart: products.map((product) => ({
-                id: product.sku,
-                name: product.name,
-                quantity: 1,
-                unit_amount: {
-                    currency_code: "USD",
-                    value: product.price.toString(),
-                },
-            })),
-            purchaseUnits: [
-                {
-                    amount: {
-                        currencyCode: "USD",
-                        value: total.toString(),
-                    },
-                },
-            ],
+const createCart = (products:IProduct[]):PayPalCartGenerator =>
+    ():Promise<IPayPalCartItem[]> => Promise.resolve(products.map((product) => ({
+        id: product.sku,
+        name: product.name,
+        quantity: 1,
+        unit_amount: {
+            currency_code: "USD",
+            value: product.price.toString(),
         },
-        prefer: "return=minimal",
-    }; 
-
-    try {
-        const controller = await getOrdersController();
-        const { body, ...httpResponse } = await controller.ordersCreate(
-            collect
-        );
-        // Get more response info...
-        // const { statusCode, headers } = httpResponse;
-        return {
-            jsonResponse: JSON.parse(body as string),
-            httpStatusCode: httpResponse.statusCode,
-        };
-    } catch (error) {
-        console.log(error);
-        if (error instanceof ApiError) {
-            // const { statusCode, headers } = error;
-            throw new Error(error.message);
-        }
-    }
-};
-
-const captureOrder = async (transactionId: string) => {
-    const collect = {
-        id: transactionId,
-        prefer: "return=minimal",
-    };
-
-    try {
-        const controller = await getOrdersController();
-        const { body, ...httpResponse } = await controller.ordersCapture(
-            collect
-        );
-        // Get more response info...
-        // const { statusCode, headers } = httpResponse;
-        return {
-            jsonResponse: JSON.parse(body as string),
-            httpStatusCode: httpResponse.statusCode,
-        };
-    } catch (error) {
-        if (error instanceof ApiError) {
-            // const { statusCode, headers } = error;
-            throw error500(error.message);
-        }
-    }
-};
+    })));
 
 export const Order = {
     ...basicCrudService<IOrder>("orders", "createdAt"),
@@ -124,7 +65,7 @@ export const Order = {
         const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
         const total = await calculateTotal(userId, order);
 
-        const payPalResult = await createOrder(products, total.total);
+        const payPalResult = await createOrder(createCart(products), total.total);
 
         if(payPalResult) {
             const newOrder = await Order.create({
