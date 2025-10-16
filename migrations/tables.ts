@@ -16,6 +16,7 @@ export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.text("metaKeywords");
     t.bigInteger("thumbnailId").unsigned();
     t.bigInteger("mainImageId").unsigned();
+    t.boolean("isDiscountable").notNullable().defaultTo(true);
 };
 
 export const productMediaTable = (t:Knex.CreateTableBuilder) => {
@@ -78,7 +79,7 @@ export const orderLineItemsTable = (t:Knex.CreateTableBuilder) => {
     t.bigIncrements();
     t.bigInteger("orderId").unsigned().notNullable().references("orders.id").onDelete("CASCADE");
     t.bigInteger("productId").unsigned().notNullable().references("products.id").onDelete("CASCADE");
-    t.integer("quantity").notNullable();
+    t.integer("quantity").notNullable().defaultTo(1);
 };
 
 export const discountsTable = (t:Knex.CreateTableBuilder) => {
