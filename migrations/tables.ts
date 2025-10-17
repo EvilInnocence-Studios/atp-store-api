@@ -11,6 +11,7 @@ export const productsTable = (t:Knex.CreateTableBuilder) => {
     t.date("releaseDate");
     t.decimal("price", 10, 2).notNullable().defaultTo(0.00);
     t.boolean("enabled").notNullable().defaultTo(false);
+    t.boolean("pinned").notNullable().defaultTo(false);
     t.text("metaTitle");
     t.text("metaDescription");
     t.text("metaKeywords");
