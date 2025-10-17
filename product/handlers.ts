@@ -62,6 +62,11 @@ class ProductHandlerClass {
         return pipeTo(Product.media.remove, getParam("productId"), getParam("mediaId"))(args);
     }
 
+    @CheckPermissions("media.update")
+    public sortMedia (...args:HandlerArgs<Query>):Promise<any> {
+        return pipeTo(Product.media.sort, getParam("productId"), getBody)(args);
+    }
+
     @CheckPermissions("product.view")
     public getTags (...args:HandlerArgs<Query>):Promise<any[]> {
         return pipeTo(Product.tags.get, getParam("productId"))(args);

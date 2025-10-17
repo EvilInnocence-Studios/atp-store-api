@@ -16,6 +16,9 @@ export const ProductEndpoints = {
                     GET: get(ProductHandlers.getOneMedia),
                     PATCH: patch(ProductHandlers.updateMedia),
                     DELETE: del(ProductHandlers.removeMedia),
+                },
+                sort: {
+                    POST: post(ProductHandlers.sortMedia),
                 }
             },
             tag: {

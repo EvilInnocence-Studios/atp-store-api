@@ -2,7 +2,7 @@ import { Setting } from "../../common/setting/service";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
 import { basicCrudService, basicRelationService } from "../../core/express/service/common";
-import { mapKeys } from "../../core/express/util";
+import { mapKeys, reorder } from "../../core/express/util";
 import { profile } from "../../core/profiler";
 import { downloadMedia, IFile, removeMedia, uploadMedia } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
@@ -84,6 +84,10 @@ export const Product = {
             await db("productMedia").where({ id: mediaId }).delete();
 
             return null;
+        },
+        sort: async (productId: number, {id, newIndex}:{id: string, newIndex: string}):Promise<IProductMedia[]> => {
+            await reorder("productMedia", id, newIndex, { productId });
+            return await Product.media.search({ productId });
         },
     },
     files: {
