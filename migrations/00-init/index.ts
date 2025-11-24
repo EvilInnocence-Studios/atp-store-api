@@ -9,37 +9,37 @@ import { insertPermissions, insertRolePermissions, insertRoles } from "../../../
 const db = database();
 
 const roles = [
-    { name: "Customer",  description: "Store customer"    },
+    { name: "Customer", description: "Store customer" },
 ];
 
 const permissions = [
-    { name: "product.view",         description: "Can view products"     },
-    { name: "product.update",       description: "Can update products"   },
-    { name: "product.create",       description: "Can create products"   },
-    { name: "product.delete",       description: "Can delete products"   },
-    { name: "product.disabled",     description: "Can view disabled products"  },
+    { name: "product.view", description: "Can view products" },
+    { name: "product.update", description: "Can update products" },
+    { name: "product.create", description: "Can create products" },
+    { name: "product.delete", description: "Can delete products" },
+    { name: "product.disabled", description: "Can view disabled products" },
 
-    { name: "media.view",           description: "Can view media"        },
-    { name: "media.update",         description: "Can update media"      },
-    { name: "media.create",         description: "Can create media"      },
-    { name: "media.delete",         description: "Can delete media"      },
+    { name: "media.view", description: "Can view media" },
+    { name: "media.update", description: "Can update media" },
+    { name: "media.create", description: "Can create media" },
+    { name: "media.delete", description: "Can delete media" },
 
-    { name: "order.view",           description: "Can view orders"       },
-    { name: "order.update",         description: "Can update orders"     },
-    { name: "order.create",         description: "Can create orders"     },
-    { name: "order.delete",         description: "Can delete orders"     },
+    { name: "order.view", description: "Can view orders" },
+    { name: "order.update", description: "Can update orders" },
+    { name: "order.create", description: "Can create orders" },
+    { name: "order.delete", description: "Can delete orders" },
 
-    { name: "order.purchase",       description: "Can purchase an order" },
-    
-    { name: "discount.view",        description: "Can view discounts"    },
-    { name: "discount.update",      description: "Can update discounts"  },
-    { name: "discount.create",      description: "Can create discounts"  },
-    { name: "discount.delete",      description: "Can delete discounts"  },
+    { name: "order.purchase", description: "Can purchase an order" },
 
-    { name: "wishlist.view",       description: "Can view wishlists"    },
-    { name: "wishlist.create",     description: "Can create wishlists"  },
-    { name: "wishlist.delete",     description: "Can delete wishlists"  },
-    { name: "wishlist.update",     description: "Can update wishlists"  },
+    { name: "discount.view", description: "Can view discounts" },
+    { name: "discount.update", description: "Can update discounts" },
+    { name: "discount.create", description: "Can create discounts" },
+    { name: "discount.delete", description: "Can delete discounts" },
+
+    { name: "wishlist.view", description: "Can view wishlists" },
+    { name: "wishlist.create", description: "Can create wishlists" },
+    { name: "wishlist.delete", description: "Can delete wishlists" },
+    { name: "wishlist.update", description: "Can update wishlists" },
 ];
 
 const rolePermissions = [
@@ -87,34 +87,34 @@ const rolePermissions = [
     { roleName: "Customer", permissionName: "wishlist.update" },
 ];
 
-export const init:IMigration = {
+export const init: IMigration = {
     name: "init",
     module: "store",
     description: "Initialize the store module",
-    order: 0,
+    order: 1,
     down: () => db.schema
-        .dropTableIfExists("discounts"      )
-        .dropTableIfExists("orderLineItems" )
-        .dropTableIfExists("orders"         )
-        .dropTableIfExists("wishlists"      )
-        .dropTableIfExists("productTags"    )
-        .dropTableIfExists("subProducts"    )
+        .dropTableIfExists("discounts")
+        .dropTableIfExists("orderLineItems")
+        .dropTableIfExists("orders")
+        .dropTableIfExists("wishlists")
+        .dropTableIfExists("productTags")
+        .dropTableIfExists("subProducts")
         .dropTableIfExists("relatedProducts")
-        .dropTableIfExists("productFiles"   )
-        .dropTableIfExists("productMedia"   )
-        .dropTableIfExists("products"       ),
+        .dropTableIfExists("productFiles")
+        .dropTableIfExists("productMedia")
+        .dropTableIfExists("products"),
     up: async () => {
         await db.schema
-            .createTable("products",        productsTable       )
-            .createTable("productMedia",    productMediaTable   )
-            .createTable("productFiles",    productFilesTable   )
-            .createTable("productTags",     productTagsTable    )
+            .createTable("products", productsTable)
+            .createTable("productMedia", productMediaTable)
+            .createTable("productFiles", productFilesTable)
+            .createTable("productTags", productTagsTable)
             .createTable("relatedProducts", relatedProductsTable)
-            .createTable("subProducts",     subProductsTable    )
-            .createTable("wishlists",       wishlistsTable      )
-            .createTable("orders",          ordersTable         )
-            .createTable("orderLineItems",  orderLineItemsTable )
-            .createTable("discounts",       discountsTable      );
+            .createTable("subProducts", subProductsTable)
+            .createTable("wishlists", wishlistsTable)
+            .createTable("orders", ordersTable)
+            .createTable("orderLineItems", orderLineItemsTable)
+            .createTable("discounts", discountsTable);
 
         // Add foreign key references after tables are created
         await db.schema.alterTable("products", (table) => {
