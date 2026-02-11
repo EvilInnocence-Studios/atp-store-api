@@ -91,7 +91,7 @@ export const init: IMigration = {
     name: "init",
     module: "store",
     description: "Initialize the store module",
-    order: 1,
+    order: 2,
     down: () => db.schema
         .dropTableIfExists("discounts")
         .dropTableIfExists("orderLineItems")
