@@ -1,6 +1,6 @@
-import { setupMigrations as storeSetup, migrations as storeMigrations } from "./migrations";
+import { init } from "./migrations/00-init";
 
-export {apiConfig} from "./endpoints";
+export { apiConfig } from "./endpoints";
 
-export const migrations = storeMigrations;
-export const setupMigrations = storeSetup;
+export const migrations = [init];
+export const setupMigrations = [init];
