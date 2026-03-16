@@ -1,10 +1,11 @@
+import { insertSettings } from "@common/migrations/util";
 import { IMigration } from "@core/dbMigrations";
 import { database } from "../../../core/database";
+import { insertPermissions, insertRolePermissions, insertRoles } from "../../../uac/migrations/util";
 import {
     discountsTable, orderLineItemsTable, ordersTable, productFilesTable, productMediaTable,
     productsTable, productTagsTable, relatedProductsTable, subProductsTable, wishlistsTable
 } from "../tables";
-import { insertPermissions, insertRolePermissions, insertRoles } from "../../../uac/migrations/util";
 
 const db = database();
 
@@ -87,6 +88,19 @@ const rolePermissions = [
     { roleName: "Customer", permissionName: "wishlist.update" },
 ];
 
+const settings = [
+    {key: "orderConfirmationSubject", value: "Order Confirmation"},
+    {key: "defaultProductSku", value: "SKU-NEW"},
+    {key: "defaultProductSortBy", value: "newest"},
+    {key: "productImageFolder", value: "media/product"},
+    {key: "defaultProductPerPage", value: "12"},
+    {key: "store.fiveColumnMinWidth", value: "1200px"},
+    {key: "store.fourColumnMinWidth", value: "992px"},
+    {key: "store.threeColumnMinWidth", value: "768px"},
+    {key: "store.twoColumnMinWidth", value: "576px"},
+    {key: "store.showCategoryLinks", value: "true"},
+]
+
 export const init: IMigration = {
     name: "init",
     module: "store",
@@ -127,5 +141,6 @@ export const init: IMigration = {
         await insertRoles(db, roles);
         await insertPermissions(db, permissions);
         await insertRolePermissions(db, rolePermissions);
+        await insertSettings(db, settings);
     },
 }
