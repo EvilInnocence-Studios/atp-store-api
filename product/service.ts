@@ -1,3 +1,4 @@
+import { ITag } from "@common-shared/tag/types";
 import { Setting } from "../../common/setting/service";
 import { Query } from "../../core-shared/express/types";
 import { database } from "../../core/database";
@@ -59,7 +60,7 @@ export const Product = {
             }))) as Promise<IProductFull[]>;
     },
     related: basicRelationService<IProduct>("relatedProducts", "productId", "products", "relatedProductId"),
-    tags: basicRelationService<IProduct>("productTags", "productId", "tags", "tagId"),
+    tags: basicRelationService<ITag>("productTags", "productId", "tags", "tagId"),
     subProducts: basicRelationService<IProduct>("subProducts", "productId", "products", "subProductId"),
     media: {
         ...basicCrudService<IProductMedia>("productMedia", "url"),

@@ -1,17 +1,23 @@
-import { pipeTo } from "ts-functional";
+import { basicRelationHandlers } from "../../core/express/service/relationHandlers";
+import { pipeTo, prop } from "ts-functional";
 import { Query } from "../../core-shared/express/types";
 import { database } from '../../core/database';
-import { HandlerArgs } from '../../core/express/types';
 import { getBody, getBodyParam, getFile, getParam, getParams, getQueryParam, getUserPermissions } from "../../core/express/extractors";
+import { HandlerArgs } from '../../core/express/types';
+import { getPresignedUploadUrl } from "../../core/s3Uploads";
 import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store-shared/product/types";
 import { CheckPermissions, hasPermission } from "../../uac/permission/util";
 import { Product } from "./service";
-import { prop } from "ts-functional";
-import { getPresignedUploadUrl } from "../../core/s3Uploads";
+import { ITag } from "@common-shared/tag/types";
 
 const db = database();
 
+const tagHandlers = basicRelationHandlers(Product.tags, "productId", "tagId");
+const relatedHandlers = basicRelationHandlers(Product.related, "productId", "relatedId");
+const subProductHandlers = basicRelationHandlers(Product.subProducts, "productId", "subProductId");
+
 class ProductHandlerClass {
+
     @CheckPermissions("product.create")
     public create (...args:HandlerArgs<any>):Promise<any> {
         return Product.create(getBody(args));
@@ -68,23 +74,23 @@ class ProductHandlerClass {
     }
 
     @CheckPermissions("product.view")
-    public getTags (...args:HandlerArgs<Query>):Promise<any[]> {
-        return pipeTo(Product.tags.get, getParam("productId"))(args);
+    public getTags (...args:HandlerArgs<Query>):Promise<ITag[]> {
+        return tagHandlers.get(args);
     }
 
     @CheckPermissions("product.update")
-    public addTag (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.tags.add, getParam("productId"), getBodyParam("tagId"))(args);
+    public addTag (...args:HandlerArgs<string>):Promise<any> {
+        return tagHandlers.add(args);
     }
 
     @CheckPermissions("product.update")
     public removeTag (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Product.tags.remove, getParam("productId"), getParam("tagId"))(args);
+        return tagHandlers.remove(args);
     }
 
     @CheckPermissions("product.view")
     public async getRelated (...args:HandlerArgs<Query>):Promise<IProduct[]> {
-        const relatedProducts = await pipeTo(Product.related.get, getParam("productId"))(args);
+        const relatedProducts = await relatedHandlers.get(args);
         
         const userPermissions = await getUserPermissions(args);
         return hasPermission(["product.disabled"], userPermissions)
@@ -94,12 +100,12 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public addRelated (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.related.add, getParam("productId"), getBodyParam("relatedId"))(args);
+        return relatedHandlers.add(args);
     }
 
     @CheckPermissions("product.update")
     public removeRelated (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Product.related.remove, getParam("productId"), getParam("relatedId"))(args);
+        return relatedHandlers.remove(args);
     }
 
     @CheckPermissions("product.view")
@@ -136,17 +142,17 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.view")
     public getSubProducts (...args:HandlerArgs<Query>):Promise<any[]> {
-        return pipeTo(Product.subProducts.get, getParam("productId"))(args);
+        return subProductHandlers.get(args);
     }
 
     @CheckPermissions("product.update")
     public addSubProduct (...args:HandlerArgs<Partial<any>>):Promise<any> {
-        return pipeTo(Product.subProducts.add, getParam("productId"), getBodyParam("subProductId"))(args);
+        return subProductHandlers.add(args);
     }
 
     @CheckPermissions("product.delete")
     public removeSubProduct (...args:HandlerArgs<undefined>):Promise<any> {
-        return pipeTo(Product.subProducts.remove, getParam("productId"), getParam("subProductId"))(args);
+        return subProductHandlers.remove(args);
     }
 }
 
