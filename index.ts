@@ -1,5 +1,5 @@
 import { registerPermissionPlugin } from "../uac/permission/registry";
-import { init } from "./migrations/00-init";
+import { init } from "../store/migrations/00-init";
 import { productPermissionPlugin } from "./product/permissionPlugin";
 
 registerPermissionPlugin(productPermissionPlugin);
