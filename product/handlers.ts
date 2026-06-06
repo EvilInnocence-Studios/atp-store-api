@@ -9,6 +9,7 @@ import { IProduct, IProductFile, IProductFull, IProductMedia } from "../../store
 import { CheckPermissions, hasPermission } from "../../uac/permission/util";
 import { Product } from "./service";
 import { ITag } from "@common-shared/tag/types";
+import { ObjectCannedACL } from "@aws-sdk/client-s3";
 
 const db = database();
 
@@ -115,7 +116,7 @@ class ProductHandlerClass {
 
     @CheckPermissions("product.update")
     public getUploadUrl (...args:HandlerArgs<Query>):Promise<string> {
-        return pipeTo(getPresignedUploadUrl, getQueryParam("path"))(args);
+        return pipeTo(getPresignedUploadUrl, getQueryParam<string>("path"), () => ObjectCannedACL.private)(args);
     }
 
     @CheckPermissions("product.update")

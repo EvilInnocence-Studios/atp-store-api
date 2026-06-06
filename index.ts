@@ -1,7 +1,7 @@
 import { registerPermissionPlugin } from "../uac/permission/registry";
 import { init } from "../store/migrations/00-init";
 import { productPermissionPlugin } from "./product/permissionPlugin";
-import { FieldRegistry } from "@core/express/util";
+import { FieldRegistry } from "../core/express/util";
 
 registerPermissionPlugin(productPermissionPlugin);
 
