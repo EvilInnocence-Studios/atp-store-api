@@ -22,8 +22,8 @@ const db = database();
 
 const getOrdersController = async () => new OrdersController(await getPayPalClient());
 
-const createCart = (products:IProduct[]):PayPalCartGenerator =>
-    ():Promise<IPayPalCartItem[]> => Promise.resolve(products.map((product) => ({
+const createCart = (products: IProduct[]): PayPalCartGenerator =>
+    (): Promise<IPayPalCartItem[]> => Promise.resolve(products.map((product) => ({
         id: product.sku,
         name: product.name,
         quantity: 1,
@@ -35,15 +35,15 @@ const createCart = (products:IProduct[]):PayPalCartGenerator =>
 
 export const Order = {
     ...basicCrudService<IOrder>("orders", "createdAt"),
-    getFull: async (id: string):Promise<IOrderFull> => {
+    getFull: async (id: string): Promise<IOrderFull> => {
         const order = await Order.loadById(id);
         const items = await Order.items.get(id);
         const files = await Order.files.getByOrder(id);
         return { ...order, items, files };
     },
-    createFromProducts: async (productIds: string[], userId: string):Promise<IOrder> => {
-        const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
-        const total = await calculateTotal(userId, {ids: productIds, couponCode: ""});
+    createFromProducts: async (productIds: string[], userId: string): Promise<IOrder> => {
+        const products = await Product.search({ offset: 0, perPage: 999999999999, id: productIds });
+        const total = await calculateTotal(userId, { ids: productIds, couponCode: "" });
 
         const order = await Order.create({
             userId,
@@ -61,13 +61,13 @@ export const Order = {
         return order;
     },
     items: basicRelationService<IProduct>("orderLineItems", "orderId", "products", "productId"),
-    start: async (userId: string, order: IOrderCreateRequest):Promise<IOrder> => {
-        const products = await Product.search({offset: 0, perPage: 999999999999, id: order.ids});
+    start: async (userId: string, order: IOrderCreateRequest): Promise<IOrder> => {
+        const products = await Product.search({ offset: 0, perPage: 999999999999, id: order.ids });
         const total = await calculateTotal(userId, order);
 
         const payPalResult = await createOrder(createCart(products), total.total);
 
-        if(payPalResult) {
+        if (payPalResult) {
             const newOrder = await Order.create({
                 userId,
                 status: "pending",
@@ -86,22 +86,22 @@ export const Order = {
             throw error500("Failed to create order");
         }
     },
-    finalize: async (transactionId: string):Promise<IOrder> => {
+    finalize: async (transactionId: string): Promise<IOrder> => {
         // Get the order.  Do nothing if it's already complete
         const order = await Order.loadBy("transactionId")(transactionId);
-        if(order.status === "complete") {
+        if (order.status === "complete") {
             return order;
         }
 
-        if(order.transactionId && order.transactionId === transactionId) {
+        if (order.transactionId && order.transactionId === transactionId) {
             // Finalize the order
             const payPalResult = await captureOrder(order.transactionId);
-            const finalOrder = await Order.update(order.id, {status: "complete"});
+            const finalOrder = await Order.update(order.id, { status: "complete" });
 
             // Send order confirmation email
             const user = await User.loadById(order.userId);
             const products = await Order.items.get(order.id);
-            const html = render(OrderConfirmation, {user, order, products});
+            const html = render(OrderConfirmation, { user, order, products });
             const supportEmail = await Setting.get("supportEmail");
             const subject = await Setting.get("orderConfirmationSubject");
             await sendEmail(
@@ -114,13 +114,13 @@ export const Order = {
             throw error500("Order has no transaction ID");
         }
     },
-    finalizeFree: async (userId: string, productIds: string[]):Promise<IOrder> => {
-        const products = await Product.search({offset: 0, perPage: 999999999999, id: productIds});
-        const total = await calculateTotal(userId, {ids: productIds, couponCode: ""});
+    finalizeFree: async (userId: string, productIds: string[]): Promise<IOrder> => {
+        const products = await Product.search({ offset: 0, perPage: 999999999999, id: productIds });
+        const total = await calculateTotal(userId, { ids: productIds, couponCode: "" });
 
         const [isValid, message] = await validateFreeOrder(userId, products);
         // Make sure the total is 0
-        if(!isValid) {
+        if (!isValid) {
             throw error500(message);
         }
 
@@ -139,18 +139,18 @@ export const Order = {
 
         // Send order confirmation email
         const user = await User.loadById(userId);
-        const html = render(OrderConfirmation, {user, order, products});
+        const html = render(OrderConfirmation, { user, order, products });
         const supportEmail = await Setting.get("supportEmail");
         const subject = await Setting.get("orderConfirmationSubject");
         await sendEmail(
             subject,
             html,
             [user.email, supportEmail]);
-        
+
         return order;
     },
     files: {
-        getByOrder: async (orderId: string):Promise<IProductFile[]> => {
+        getByOrder: async (orderId: string): Promise<IProductFile[]> => {
             const productFiles = await db
                 .select("productFiles.*")
                 .from("productFiles")
@@ -170,7 +170,7 @@ export const Order = {
 
             return [...productFiles, ...subProductFiles];
         },
-        getByUser: async (userId: number):Promise<IProductFile[]> => {
+        getByUser: async (userId: number): Promise<IProductFile[]> => {
             // Get all files linked from all products of all of the user's orders
             const productFiles = await db
                 .select("productFiles.*")
@@ -192,14 +192,38 @@ export const Order = {
             return [...productFiles, ...subProductFiles];
         }
     },
+    hasPurchased: async (userId: number | string, productId: number | string): Promise<boolean> => {
+        // Direct purchase in a completed order
+        const direct = await db("orders")
+            .join("orderLineItems", "orders.id", "orderLineItems.orderId")
+            .where("orders.userId", userId)
+            .where("orders.status", "complete")
+            .where("orderLineItems.productId", productId)
+            .first();
+
+        if (direct) {
+            return true;
+        }
+
+        // Subproduct of a purchased bundle
+        const subProduct = await db("orders")
+            .join("orderLineItems", "orders.id", "orderLineItems.orderId")
+            .join("subProducts", "orderLineItems.productId", "subProducts.productId")
+            .where("orders.userId", userId)
+            .where("orders.status", "complete")
+            .where("subProducts.subProductId", productId)
+            .first();
+
+        return !!subProduct;
+    },
     cart: {
-        getTotals: async (userId: string, products: string[], couponCode: string):Promise<ICartTotals> => {
-            return await calculateTotal(userId, {ids: products, couponCode});
+        getTotals: async (userId: string, products: string[], couponCode: string): Promise<ICartTotals> => {
+            return await calculateTotal(userId, { ids: products, couponCode });
         }
     },
     report: {
         sales: {
-            get: async ():Promise<any> => {
+            get: async (): Promise<any> => {
                 // Placeholder for sales report logic
                 return db.select("*").from("orders").where("status", "complete");
             }
